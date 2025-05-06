@@ -1,0 +1,217 @@
+package api
+
+import (
+	"encoding/xml"
+	"errors"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"time"
+
+	"github.com/google/go-querystring/query"
+	"github.com/twoscott/go-fm/lastfm"
+)
+
+var (
+	BaseEndpoint = "https://ws.audioscrobbler.com"
+	Version      = "2.0"
+	Endpoint     = BaseEndpoint + "/" + Version + "/"
+
+	DefaultUserAgent = "LastFM (https://github.com/twoscott/go-fm)"
+	DefaultRetries   = 5
+	DefaultTimeout   = 30
+)
+
+// HTTPClient is an interface that defines the Do method for making HTTP
+// requests. This allows for easier testing and mocking of HTTP requests.
+type HTTPClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+// API represents the Last.fm API client. It provides methods for making
+// requests to the Last.fm API and handling responses. The API client is
+// initialized with an API key and can be configured with a user agent and
+// timeout settings. It also supports retries for failed requests.
+type API struct {
+	APIKey string
+
+	userAgent string
+	retries   uint
+	client    HTTPClient
+}
+
+// New returns a new instance of API with the given API key.
+func New(apiKey string) *API {
+	return NewWithTimeout(apiKey, DefaultTimeout)
+}
+
+// NewWithTimeout returns a new instance of API with the given API key and
+// timeout settings. The timeout is specified in seconds.
+func NewWithTimeout(apiKey string, timeout int) *API {
+	return &API{
+		APIKey:    apiKey,
+		userAgent: DefaultUserAgent,
+		client:    &http.Client{Timeout: time.Duration(timeout) * time.Second},
+	}
+}
+
+// SetUserAgent sets the user agent for the API client.
+func (a *API) SetUserAgent(userAgent string) {
+	a.userAgent = userAgent
+}
+
+// AuthURL returns the authentication URL for the Last.fm API. This URL can be
+// used to redirect users to Last.fm for authentication. The URL includes the
+// API key.
+func (a API) AuthURL() string {
+	return a.authURL("")
+}
+
+// AuthCallbackURL returns the authentication URL for the Last.fm API with a
+// callback URL. This URL can be used to redirect users to Last.fm for
+// authentication. The URL includes the API key and the callback URL.
+func (a API) AuthCallbackURL(callbackURL string) string {
+	return a.authURL(callbackURL)
+}
+
+func (a API) authURL(cb string) string {
+	p := url.Values{}
+	p.Set("api_key", a.APIKey)
+	if cb != "" {
+		p.Set("cb", cb)
+	}
+	return lastfm.AuthURL + "?" + p.Encode()
+}
+
+// Get sends an HTTP GET request to the API using the specified method and
+// parameters, and decodes the response into the provided destination.
+//
+// Parameters:
+//   - dest: A pointer to the variable where the response will be unmarshaled.
+//   - method: The APIMethod representing the endpoint to call.
+//   - params: The parameters to include in the request.
+//
+// Returns:
+//   - An error if the request fails or the response cannot be decoded.
+func (a API) Get(dest any, method APIMethod, params any) error {
+	return a.Request(dest, http.MethodGet, method, params)
+}
+
+// Post sends an HTTP POST request to the API with the specified method and
+// parameters. The response is unmarshaled into the provided destination.
+//
+// Parameters:
+//   - dest: A pointer to the variable where the response will be unmarshaled.
+//   - method: The APIMethod representing the API endpoint to call.
+//   - params: The parameters to include in the POST request.
+//
+// Returns:
+//   - An error if the request fails or the response cannot be unmarshaled.
+func (a API) Post(dest any, method APIMethod, params any) error {
+	return a.Request(dest, http.MethodPost, method, params)
+}
+
+// Request sends an HTTP request to the API with the specified parameters and
+// unmarshals the response into the provided destination.
+//
+// Parameters:
+//   - dest: A pointer to the variable where the unmarshaled XML response will
+//     be stored.
+//   - httpMethod: The HTTP method to use for the request (e.g., "GET", "POST").
+//   - method: The API method to call, represented as an APIMethod type.
+//   - params: The parameters to include in the API request, typically a struct
+//     that can be serialized into query parameters.
+//
+// Returns:
+//   - An error if the request fails, the response cannot be unmarshaled,
+//     or any other issue occurs.
+//
+// The function constructs the request URL with the provided parameters, sets
+// the necessary headers, sends the request, and processes the response. It uses
+// the `query.Values` package to encode parameters and the
+// `xml.Unmarshal` function to parse the XML response.
+func (a API) Request(dest any, httpMethod string, method APIMethod, params any) error {
+	p, err := query.Values(params)
+	if err != nil {
+		return err
+	}
+
+	p.Set("api_key", a.APIKey)
+	p.Set("method", method.String())
+	url := buildAPIURL(p)
+
+	req, err := http.NewRequest(httpMethod, url, nil)
+	if err != nil {
+		return err
+	}
+
+	req.Header.Set("User-Agent", a.userAgent)
+	req.Header.Set("Accept", "application/xml")
+
+	lfm, err := a.DoRequest(req)
+	if err != nil {
+		return err
+	}
+
+	err = lfm.UnmarshalInnerXML(dest)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	return nil
+}
+
+// DoRequest sends the HTTP request and handles the response. It retries the
+// request if the response indicates a server error or if the Last.fm API rate
+// limit is exceeded. The function decodes the XML response into a LFMWrapper
+// instance and checks for errors. If the response is successful, it returns
+// the LFMWrapper instance. If an error occurs, it returns the error.
+func (a API) DoRequest(req *http.Request) (*LFMWrapper, error) {
+	var (
+		res   *http.Response
+		lfm   LFMWrapper
+		lferr *LastFMError
+		err   error
+	)
+
+	for i := uint(0); i <= a.retries; i++ {
+		res, err = a.client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		err = xml.NewDecoder(res.Body).Decode(&lfm)
+		res.Body.Close()
+		if err == nil {
+			lferr, _ = lfm.UnwrapError()
+		}
+
+		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
+			continue
+		}
+		if lferr != nil && lferr.IsRateLimit() {
+			continue
+		}
+
+		break
+	}
+
+	if lferr != nil {
+		return nil, lferr
+	}
+	if res.StatusCode < http.StatusOK || res.StatusCode > http.StatusIMUsed {
+		return nil, NewHTTPError(res)
+	}
+	if errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("invalid XML response: %w", err)
+	}
+	if err != nil {
+		return nil, err
+	}
+	if lfm.Empty() {
+		return nil, fmt.Errorf("empty response: %w", NewHTTPError(res))
+	}
+
+	return &lfm, nil
+}
