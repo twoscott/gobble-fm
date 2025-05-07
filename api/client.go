@@ -4,6 +4,7 @@ package api
 type Client struct {
 	*API
 	Album *Album
+	Chart *Chart
 	User  *User
 }
 
@@ -14,6 +15,7 @@ func NewClient(apiKey string) *Client {
 	return &Client{
 		API:   a,
 		Album: NewAlbum(a),
+		Chart: NewChart(a),
 		User:  NewUser(a),
 	}
 }

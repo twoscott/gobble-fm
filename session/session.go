@@ -104,7 +104,12 @@ func (s Session) Post(dest any, method api.APIMethod, params any) error {
 // the `query.Values` package to encode parameters and the
 // `xml.Unmarshal` function to parse the XML response.
 func (s Session) Request(dest any, httpMethod string, method api.APIMethod, params any) error {
-	p, err := query.Values(params)
+	var p url.Values
+	var err error
+
+	if params != nil {
+		p, err = query.Values(params)
+	}
 	if err != nil {
 		return err
 	}

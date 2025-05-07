@@ -141,7 +141,12 @@ func (a API) Post(dest any, method APIMethod, params any) error {
 //   - An error if the request fails, the response cannot be unmarshaled,
 //     or any other issue occurs.
 func (a API) Request(dest any, httpMethod string, method APIMethod, params any) error {
-	p, err := query.Values(params)
+	var p url.Values
+	var err error
+
+	if params != nil {
+		p, err = query.Values(params)
+	}
 	if err != nil {
 		return err
 	}
