@@ -50,9 +50,8 @@ func (a Album) TopTagsByMBID(params lastfm.AlbumTopTagsMBIDParams) (*lastfm.Albu
 	return &res, a.api.Get(&res, AlbumGetTopTagsMethod, params)
 }
 
-// Deprecated: Search API method is currently broken for XML.
+// Search returns the results of an album search.
 func (a Album) Search(params lastfm.AlbumSearchParams) (*lastfm.AlbumSearchResult, error) {
-	// var res lastfm.AlbumSearchResult
-	// return &res, a.api.Get(&res, AlbumSearchMethod, params)
-	return nil, nil
+	var res lastfm.AlbumSearchResult
+	return &res, a.api.Get(&res, AlbumSearchMethod, params)
 }

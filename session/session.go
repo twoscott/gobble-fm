@@ -107,7 +107,9 @@ func (s Session) Request(dest any, httpMethod string, method api.APIMethod, para
 	var p url.Values
 	var err error
 
-	if params != nil {
+	if params == nil {
+		p = url.Values{}
+	} else {
 		p, err = query.Values(params)
 	}
 	if err != nil {

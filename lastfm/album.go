@@ -136,4 +136,22 @@ type AlbumSearchParams struct {
 	Page  uint   `url:"page,omitempty"`
 }
 
-type AlbumSearchResult struct{}
+type AlbumSearchResult struct {
+	For   string `xml:"for,attr"`
+	Query struct {
+		Role        string `xml:"role,attr"`
+		SearchTerms string `xml:"searchTerms,attr"`
+		StartPage   int    `xml:"startPage,attr"`
+	} `xml:"Query"`
+	TotalResults int `xml:"totalResults"`
+	StartIndex   int `xml:"startIndex"`
+	PerPage      int `xml:"itemsPerPage"`
+	Albums       []struct {
+		Name       string  `xml:"name"`
+		Artist     string  `xml:"artist"`
+		URL        string  `xml:"url"`
+		MBID       string  `xml:"mbid"`
+		Streamable IntBool `xml:"streamable"`
+		Image      Image   `xml:"image"`
+	} `xml:"albummatches>album"`
+}

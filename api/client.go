@@ -7,6 +7,7 @@ type Client struct {
 	Chart   *Chart
 	Geo     *Geo
 	Library *Library
+	Tag     *Tag
 	User    *User
 }
 
@@ -20,6 +21,7 @@ func NewClient(apiKey string) *Client {
 		Chart:   NewChart(a),
 		Geo:     NewGeo(a),
 		Library: NewLibrary(a),
+		Tag:     NewTag(a),
 		User:    NewUser(a),
 	}
 }

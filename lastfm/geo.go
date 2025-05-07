@@ -5,8 +5,8 @@ package lastfm
 type GeoTopArtistsParams struct {
 	// A country name, as defined by the ISO 3166-1 country names standard
 	Country string `url:"country"`
-	Limit   int    `url:"limit,omitempty"`
-	Page    int    `url:"page,omitempty"`
+	Limit   uint   `url:"limit,omitempty"`
+	Page    uint   `url:"page,omitempty"`
 }
 
 type GeoTopArtists struct {
@@ -33,8 +33,8 @@ type GeoTopTracksParams struct {
 	// A metro name to fetch the charts for, (must be within the country
 	// specified)
 	Location string `url:"location,omitempty"`
-	Limit    int    `url:"limit,omitempty"`
-	Page     int    `url:"page,omitempty"`
+	Limit    uint   `url:"limit,omitempty"`
+	Page     uint   `url:"page,omitempty"`
 }
 
 type GeoTopTracks struct {

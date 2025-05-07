@@ -4,8 +4,8 @@ package lastfm
 
 type LibraryArtistsParams struct {
 	User  string `url:"user"`
-	Limit int    `url:"limit,omitempty"`
-	Page  int    `url:"page,omitempty"`
+	Limit uint   `url:"limit,omitempty"`
+	Page  uint   `url:"page,omitempty"`
 }
 
 type LibraryArtists struct {

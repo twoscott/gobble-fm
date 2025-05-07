@@ -39,7 +39,7 @@ type ChartTopTags struct {
 		Name       string  `xml:"name"`
 		URL        string  `xml:"url"`
 		Reach      int     `xml:"reach"`
-		Taggings   int     `xml:"taggings"`
+		Count      int     `xml:"taggings"`
 		Streamable IntBool `xml:"streamable"`
 		Wiki       string  `xml:"wiki"`
 	} `xml:"tag"`
