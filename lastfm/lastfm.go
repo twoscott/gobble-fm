@@ -2,9 +2,9 @@ package lastfm
 
 import (
 	"encoding/xml"
-	"net/url"
+	"maps"
 	"regexp"
-	"strconv"
+	"slices"
 	"time"
 )
 
@@ -14,9 +14,46 @@ const (
 	AuthURL = APIURL + "/auth"
 )
 
-type Params struct {
-	shouldSign bool
-	values     url.Values
+type Period string
+
+const (
+	PeriodOverall Period = "overall"
+	PeriodWeek    Period = "7day"
+	PeriodMonth   Period = "1month"
+	Period3Months Period = "3month"
+	Period6Months Period = "6month"
+	PeriodYear    Period = "12month"
+)
+
+type TagType string
+
+const (
+	TagTypeArtist TagType = "artist"
+	TagTypeAlbum  TagType = "album"
+	TagTypeTrack  TagType = "track"
+)
+
+type Duration time.Duration
+
+// Unwrap returns the duration as a time.Duration.
+func (d Duration) Unwrap() time.Duration {
+	return time.Duration(d)
+}
+
+// String returns the duration as a string.
+func (d Duration) String() string {
+	return time.Duration(d).String()
+}
+
+// UnmarshalXML implements the xml.Unmarshaler interface for Duration.
+func (d *Duration) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
+	var sec int64
+	if err := dc.DecodeElement(&sec, &start); err != nil {
+		return err
+	}
+
+	*d = Duration(time.Duration(sec) * time.Second)
+	return nil
 }
 
 type ImgSize string
@@ -52,70 +89,89 @@ func (s ImgSize) PathSize() string {
 	}
 }
 
-type Image string
+func (s ImgSize) intSize() int {
+	switch s {
+	case ImgSizeSmall:
+		return 1
+	case ImgSizeMedium:
+		return 2
+	case ImgSizeLarge:
+		return 3
+	case ImgSizeExtralarge:
+		return 4
+	default:
+		return 0
+	}
+}
+
+// Compare returns -1 if s < other, 0 if s == other, and 1 if s > other.
+func (s ImgSize) Compare(other ImgSize) int {
+	return s.intSize() - other.intSize()
+}
+
+type Image map[ImgSize]string
+
+func (i *Image) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
+	if *i == nil {
+		*i = make(Image)
+	}
+
+	var size ImgSize
+	for _, attr := range start.Attr {
+		if attr.Name.Local == "size" {
+			size = ImgSize(attr.Value)
+			break
+		}
+	}
+
+	var url string
+	if err := dc.DecodeElement(&url, &start); err != nil {
+		return err
+	}
+
+	(*i)[size] = url
+	return nil
+}
 
 // String returns the string representation of the Image URL.
 func (i Image) String() string {
-	return string(i)
+	return i.URL()
 }
 
 // URL returns the URL of the image in its extra large size.
 // This is the same as calling SizedURL(ImgSizeExtralarge).
 func (i Image) URL() string {
-	return i.SizedURL(ImgSizeExtralarge)
+	if len(i) == 0 {
+		return ""
+	}
+
+	if url, ok := i[ImgSizeExtralarge]; ok {
+		return url
+	}
+
+	sizes := slices.SortedFunc(maps.Keys(i), func(a, b ImgSize) int { return a.Compare(b) })
+	return i[sizes[len(sizes)-1]]
 }
 
 // SizedURL returns the URL of the image with the specified size.
 func (i Image) SizedURL(size ImgSize) string {
-	sizeRegex := regexp.MustCompile(`i/u/\d+(s|x\d+)/`)
-	return sizeRegex.ReplaceAllString(i.String(), "i/u/"+size.PathSize())
-}
-
-type DateTime time.Time
-
-// Time returns the time.Time representation of the DateTime.
-func (dt DateTime) Time() time.Time {
-	return time.Time(dt)
-}
-
-// Sring returns the string representation of the DateTime in DateTime format.
-func (dt DateTime) String() string {
-	return dt.Format(time.DateTime)
-}
-
-// Format returns the string representation of the DateTime in the
-// specified format.
-func (dt DateTime) Format(format string) string {
-	return dt.Time().Format(format)
-}
-
-// MarshalJSON implements the json.Marshaler interface for DateTime.
-func (dt DateTime) MarshalJSON() ([]byte, error) {
-	return time.Time(dt).MarshalJSON()
-}
-
-// UnmarshalXML implements the xml.Unmarshaler interface for DateTime.
-func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var uts string
-	for _, attr := range start.Attr {
-		if attr.Name.Local == "uts" || attr.Name.Local == "unixtime" {
-			uts = attr.Value
-			break
-		}
+	if url, ok := i[size]; ok {
+		return url
 	}
 
-	if uts != "" {
-		sec, err := strconv.ParseInt(uts, 10, 64)
-		if err != nil {
-			return err
-		}
-		*dt = DateTime(time.Unix(sec, 0))
+	return i.resizeURL(size)
+}
+
+// OriginalURL returns the URL of the image in original size.
+func (i Image) OriginalURL() string {
+	return i.resizeURL(ImgSizeOriginal)
+}
+
+func (i Image) resizeURL(size ImgSize) string {
+	sizeRegex, err := regexp.Compile(`i/u/\d+(s|x\d+)/`)
+	if err != nil {
+		return i.URL()
 	}
 
-	var discard string
-	if err := d.DecodeElement(&discard, &start); err != nil {
-		return err
-	}
-
-	return nil
+	return sizeRegex.ReplaceAllString(i.URL(), "i/u/"+size.PathSize())
 }

@@ -79,7 +79,8 @@ const (
 	UserGetWeeklyTrackChartMethod  APIMethod = "user.getWeeklyTrackChart"
 )
 
-func buildAPIURL(params url.Values) string {
+// BuildAPIURL constructs a Last.fm API URL with the specified parameters.
+func BuildAPIURL(params url.Values) string {
 	return buildURL(Endpoint, params)
 }
 

@@ -34,11 +34,13 @@ type HTTPClient interface {
 // initialized with an API key and can be configured with a user agent and
 // timeout settings. It also supports retries for failed requests.
 type API struct {
+	// APIKey is the Last.fm API key used to authenticate requests.
 	APIKey string
+	// UserAgent is the user agent string sent with each request to the API.
+	UserAgent string
 
-	userAgent string
-	retries   uint
-	client    HTTPClient
+	retries uint
+	client  HTTPClient
 }
 
 // New returns a new instance of API with the given API key.
@@ -51,36 +53,48 @@ func New(apiKey string) *API {
 func NewWithTimeout(apiKey string, timeout int) *API {
 	return &API{
 		APIKey:    apiKey,
-		userAgent: DefaultUserAgent,
+		UserAgent: DefaultUserAgent,
 		client:    &http.Client{Timeout: time.Duration(timeout) * time.Second},
 	}
 }
 
 // SetUserAgent sets the user agent for the API client.
 func (a *API) SetUserAgent(userAgent string) {
-	a.userAgent = userAgent
+	a.UserAgent = userAgent
 }
 
 // AuthURL returns the authentication URL for the Last.fm API. This URL can be
 // used to redirect users to Last.fm for authentication. The URL includes the
 // API key.
 func (a API) AuthURL() string {
-	return a.authURL("")
+	return a.AuthCallbackURL("")
 }
 
 // AuthCallbackURL returns the authentication URL for the Last.fm API with a
 // callback URL. This URL can be used to redirect users to Last.fm for
 // authentication. The URL includes the API key and the callback URL.
 func (a API) AuthCallbackURL(callbackURL string) string {
-	return a.authURL(callbackURL)
+	return a.authURL(callbackURL, "")
 }
 
-func (a API) authURL(cb string) string {
+// AuthTokenURL returns the authentication URL for the Last.fm API with a
+// token. This URL can be used to redirect users to Last.fm for authentication.
+// The URL includes the API key and the token.
+func (a API) AuthTokenURL(token string) string {
+	return a.authURL("", token)
+}
+
+func (a API) authURL(cb, token string) string {
 	p := url.Values{}
 	p.Set("api_key", a.APIKey)
+
 	if cb != "" {
 		p.Set("cb", cb)
 	}
+	if token != "" {
+		p.Set("token", token)
+	}
+
 	return lastfm.AuthURL + "?" + p.Encode()
 }
 
@@ -139,22 +153,22 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 
 	p.Set("api_key", a.APIKey)
 	p.Set("method", method.String())
-	url := buildAPIURL(p)
+	url := BuildAPIURL(p)
 
 	req, err := http.NewRequest(httpMethod, url, nil)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("User-Agent", a.userAgent)
+	req.Header.Set("User-Agent", a.UserAgent)
 	req.Header.Set("Accept", "application/xml")
 
-	lfm, err := a.DoRequest(req)
+	res, err := a.DoRequest(req)
 	if err != nil {
 		return err
 	}
 
-	err = lfm.UnmarshalInnerXML(dest)
+	err = res.UnmarshalInnerXML(dest)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)
 	}

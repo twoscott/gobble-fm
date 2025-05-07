@@ -190,7 +190,7 @@ func TestRequest(t *testing.T) {
 
 			api := &API{
 				APIKey:    "testapikey",
-				userAgent: DefaultUserAgent,
+				UserAgent: DefaultUserAgent,
 				retries:   defaultRetries,
 				client:    mockClient,
 			}
