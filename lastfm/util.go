@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const TimeFormat = "02 Jan 2006, 15:04"
+
 type IntBool bool
 
 func (b IntBool) Bool() bool {
@@ -62,6 +64,11 @@ func (dt DateTime) Format(format string) string {
 
 // UnmarshalXML implements the xml.Unmarshaler interface for DateTime.
 func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var dateString string
+	if err := d.DecodeElement(&dateString, &start); err != nil {
+		return err
+	}
+
 	var uts string
 	for _, attr := range start.Attr {
 		if attr.Name.Local == "uts" || attr.Name.Local == "unixtime" {
@@ -76,11 +83,16 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 			return err
 		}
 		*dt = DateTime(time.Unix(sec, 0))
+		return nil
 	}
 
-	var discard string
-	if err := d.DecodeElement(&discard, &start); err != nil {
-		return err
+	if dateString != "" {
+		t, err := time.ParseInLocation(TimeFormat, dateString, time.UTC)
+		if err != nil {
+			return err
+		}
+
+		*dt = DateTime(t)
 	}
 
 	return nil
@@ -93,5 +105,28 @@ func (dt *DateTime) UnmarshalXMLAttr(attr xml.Attr) error {
 		return err
 	}
 	*dt = DateTime(time.Unix(sec, 0))
+	return nil
+}
+
+type Duration time.Duration
+
+// Unwrap returns the duration as a time.Duration.
+func (d Duration) Unwrap() time.Duration {
+	return time.Duration(d)
+}
+
+// String returns the duration as a string.
+func (d Duration) String() string {
+	return time.Duration(d).String()
+}
+
+// UnmarshalXML implements the xml.Unmarshaler interface for Duration.
+func (d *Duration) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
+	var sec int64
+	if err := dc.DecodeElement(&sec, &start); err != nil {
+		return err
+	}
+
+	*d = Duration(time.Duration(sec) * time.Second)
 	return nil
 }

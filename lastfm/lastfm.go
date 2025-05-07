@@ -5,7 +5,6 @@ import (
 	"maps"
 	"regexp"
 	"slices"
-	"time"
 )
 
 const (
@@ -33,29 +32,6 @@ const (
 	TagTypeTrack  TagType = "track"
 )
 
-type Duration time.Duration
-
-// Unwrap returns the duration as a time.Duration.
-func (d Duration) Unwrap() time.Duration {
-	return time.Duration(d)
-}
-
-// String returns the duration as a string.
-func (d Duration) String() string {
-	return time.Duration(d).String()
-}
-
-// UnmarshalXML implements the xml.Unmarshaler interface for Duration.
-func (d *Duration) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
-	var sec int64
-	if err := dc.DecodeElement(&sec, &start); err != nil {
-		return err
-	}
-
-	*d = Duration(time.Duration(sec) * time.Second)
-	return nil
-}
-
 type ImgSize string
 
 const (
@@ -67,6 +43,8 @@ const (
 	ImgSizeLarge ImgSize = "large"
 	// 300x300
 	ImgSizeExtralarge ImgSize = "extralarge"
+	// 300x300?
+	ImgSizeMega ImgSize = "mega"
 	// Original upload size
 	ImgSizeOriginal ImgSize = "original"
 )
@@ -99,6 +77,8 @@ func (s ImgSize) intSize() int {
 		return 3
 	case ImgSizeExtralarge:
 		return 4
+	case ImgSizeMega:
+		return 5
 	default:
 		return 0
 	}

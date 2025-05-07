@@ -168,6 +168,10 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 		return err
 	}
 
+	if dest == nil {
+		return nil
+	}
+
 	err = res.UnmarshalInnerXML(dest)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)
@@ -222,9 +226,6 @@ func (a API) DoRequest(req *http.Request) (*LFMWrapper, error) {
 	}
 	if err != nil {
 		return nil, err
-	}
-	if lfm.Empty() {
-		return nil, fmt.Errorf("empty response: %w", NewHTTPError(res))
 	}
 
 	return &lfm, nil

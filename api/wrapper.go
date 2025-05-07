@@ -3,7 +3,6 @@ package api
 import (
 	"encoding/xml"
 	"errors"
-	"fmt"
 )
 
 type LFMWrapper struct {
@@ -34,7 +33,7 @@ func (lf *LFMWrapper) StatusFailed() bool {
 // LastFMError contains an error code, it returns the LastFMError. If no error
 // code is present or unmarshaling fails, it returns an appropriate error.
 func (lf *LFMWrapper) UnwrapError() (*LastFMError, error) {
-	if !lf.StatusFailed() {
+	if lf.StatusOK() {
 		return nil, nil
 	}
 
@@ -52,8 +51,5 @@ func (lf *LFMWrapper) UnwrapError() (*LastFMError, error) {
 // UnmarshalInnerXML unmarshals the InnerXML field into the provided destination
 // variable.
 func (lf *LFMWrapper) UnmarshalInnerXML(dest any) error {
-	if err := xml.Unmarshal(lf.InnerXML, dest); err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-	return nil
+	return xml.Unmarshal(lf.InnerXML, dest)
 }

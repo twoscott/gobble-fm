@@ -3,8 +3,9 @@ package session
 // Client provides low-level functionality for making calls to the Last.fm Client.
 type Client struct {
 	*Session
-	Auth *Auth
-	User *User
+	Album *Album
+	Auth  *Auth
+	User  *User
 }
 
 // New returns a new instance of Session Client with the given API key and secret.
@@ -13,6 +14,7 @@ func NewClient(apiKey, secret string) *Client {
 
 	return &Client{
 		Session: s,
+		Album:   NewAlbum(s),
 		Auth:    NewAuth(s),
 		User:    NewUser(s),
 	}

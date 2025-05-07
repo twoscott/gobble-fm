@@ -95,14 +95,54 @@ type LovedTracks struct {
 // https://www.last.fm/api/show/user.getPersonalTags
 
 type PersonalTagsParams struct {
-	User  string  `url:"user"`
-	Tag   string  `url:"tag"`
-	Type  TagType `url:"taggingtype"`
-	Limit uint    `url:"limit,omitempty"`
-	Page  uint    `url:"page,omitempty"`
+	User  string `url:"user"`
+	Tag   string `url:"tag"`
+	Limit uint   `url:"limit,omitempty"`
+	Page  uint   `url:"page,omitempty"`
 }
 
-type PersonalTags struct {
+type PersonalTagsExtendedParams struct {
+	PersonalTagsParams
+	Type TagType `url:"taggingtype"`
+}
+
+type PersonalAlbumTags struct {
+	User       string `xml:"user,attr"`
+	Tag        string `xml:"tag,attr"`
+	Page       int    `xml:"page,attr"`
+	PerPage    int    `xml:"perPage,attr"`
+	TotalPages int    `xml:"totalPages,attr"`
+	Total      int    `xml:"total,attr"`
+	Albums     []struct {
+		Name   string `xml:"name"`
+		URL    string `xml:"url"`
+		MBID   string `xml:"mbid"`
+		Artist struct {
+			Name string `xml:"name"`
+			URL  string `xml:"url"`
+			MBID string `xml:"mbid"`
+		} `xml:"artist"`
+		Cover Image `xml:"image"`
+	} `xml:"albums>album"`
+}
+
+type PersonalArtistTags struct {
+	User       string `xml:"user,attr"`
+	Tag        string `xml:"tag,attr"`
+	Page       int    `xml:"page,attr"`
+	PerPage    int    `xml:"perPage,attr"`
+	TotalPages int    `xml:"totalPages,attr"`
+	Total      int    `xml:"total,attr"`
+	Artists    []struct {
+		Name       string  `xml:"name"`
+		URL        string  `xml:"url"`
+		MBID       string  `xml:"mbid"`
+		Streamable IntBool `xml:"streamable"`
+		Image      Image   `xml:"image"`
+	} `xml:"artists>artist"`
+}
+
+type PersonalTrackTags struct {
 	User       string `xml:"user,attr"`
 	Tag        string `xml:"tag,attr"`
 	Page       int    `xml:"page,attr"`
@@ -153,6 +193,7 @@ type RecentTracks struct {
 		Name       string  `xml:"name"`
 		URL        string  `xml:"url"`
 		MBID       string  `xml:"mbid"`
+		NowPlaying bool    `xml:"nowplaying,attr"`
 		Streamable IntBool `xml:"streamable"`
 		Artist     struct {
 			Name string `xml:",chardata"`
@@ -178,6 +219,7 @@ type RecentTracksExtended struct {
 		Name       string  `xml:"name"`
 		URL        string  `xml:"url"`
 		MBID       string  `xml:"mbid"`
+		NowPlaying bool    `xml:"nowplaying,attr"`
 		Loved      IntBool `xml:"loved"`
 		Streamable IntBool `xml:"streamable"`
 		Artist     struct {
@@ -284,7 +326,7 @@ type UserTopTracks struct {
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
 		Name       string   `xml:"name"`
-		Rank       string   `xml:"rank,attr"`
+		Rank       int      `xml:"rank,attr"`
 		Playcount  int      `xml:"playcount"`
 		Duration   Duration `xml:"duration"`
 		URL        string   `xml:"url"`

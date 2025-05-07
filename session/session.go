@@ -127,6 +127,10 @@ func (s Session) Request(dest any, httpMethod string, method api.APIMethod, para
 		return err
 	}
 
+	if dest == nil {
+		return nil
+	}
+
 	err = lfm.UnmarshalInnerXML(dest)
 	if err != nil {
 		return fmt.Errorf("failed to unmarshal response: %w", err)

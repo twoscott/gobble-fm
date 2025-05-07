@@ -32,11 +32,25 @@ func (u User) LovedTracks(params lastfm.LovedTracksParams) (*lastfm.LovedTracks,
 	return &res, u.api.Get(&res, UserGetLovedTracksMethod, params)
 }
 
-// PersonalTags returns the personal tags of a user, matching the given tag and
-// type.
-func (u User) PersonalTags(params lastfm.PersonalTagsParams) (*lastfm.PersonalTags, error) {
-	var res lastfm.PersonalTags
-	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, params)
+// PersonalAlbumTags returns the personal album tags of a user.
+func (u User) PersonalAlbumTags(params lastfm.PersonalTagsParams) (*lastfm.PersonalAlbumTags, error) {
+	var res lastfm.PersonalAlbumTags
+	p := lastfm.PersonalTagsExtendedParams{PersonalTagsParams: params, Type: lastfm.TagTypeAlbum}
+	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, p)
+}
+
+// PersonalArtistTags returns the personal artist tags of a user.
+func (u User) PersonalArtistTags(params lastfm.PersonalTagsParams) (*lastfm.PersonalArtistTags, error) {
+	var res lastfm.PersonalArtistTags
+	p := lastfm.PersonalTagsExtendedParams{PersonalTagsParams: params, Type: lastfm.TagTypeArtist}
+	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, p)
+}
+
+// PersonalTrackTags returns the personal track tags of a user.
+func (u User) PersonalTrackTags(params lastfm.PersonalTagsParams) (*lastfm.PersonalTrackTags, error) {
+	var res lastfm.PersonalTrackTags
+	p := lastfm.PersonalTagsExtendedParams{PersonalTagsParams: params, Type: lastfm.TagTypeTrack}
+	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, p)
 }
 
 // RecentTracks returns the recent tracks of a user.
@@ -51,8 +65,8 @@ func (u User) RecentTracksExtended(
 	params lastfm.RecentTracksParams) (*lastfm.RecentTracksExtended, error) {
 
 	var res lastfm.RecentTracksExtended
-	exp := lastfm.RecentTracksExtendedParams{RecentTracksParams: params, Extended: true}
-	return &res, u.api.Get(&res, UserGetRecentTracksMethod, exp)
+	p := lastfm.RecentTracksExtendedParams{RecentTracksParams: params, Extended: true}
+	return &res, u.api.Get(&res, UserGetRecentTracksMethod, p)
 }
 
 // TopAlbums returns the top albums of a user.
@@ -103,7 +117,9 @@ func (u User) WeeklyChartList(user string) (*lastfm.WeeklyChartList, error) {
 }
 
 // WeeklyTrackChart returns the weekly track chart of a user.
-func (u User) WeeklyTrackChart(params lastfm.WeeklyTrackChartParams) (*lastfm.WeeklyTrackChart, error) {
+func (u User) WeeklyTrackChart(
+	params lastfm.WeeklyTrackChartParams) (*lastfm.WeeklyTrackChart, error) {
+
 	var res lastfm.WeeklyTrackChart
 	return &res, u.api.Get(&res, UserGetWeeklyTrackChartMethod, params)
 }
