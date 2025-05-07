@@ -6,6 +6,7 @@ type Client struct {
 	Album *Album
 	Auth  *Auth
 	Chart *Chart
+	Geo   *Geo
 	User  *User
 }
 
@@ -18,6 +19,7 @@ func NewClient(apiKey, secret string) *Client {
 		Album:   NewAlbum(s),
 		Auth:    NewAuth(s),
 		Chart:   NewChart(s),
+		Geo:     NewGeo(s),
 		User:    NewUser(s),
 	}
 }
