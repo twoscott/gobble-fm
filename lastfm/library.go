@@ -3,9 +3,9 @@ package lastfm
 // https://www.last.fm/api/show/library.getArtists
 
 type LibraryArtistsParams struct {
-	User  string `json:"user"`
-	Limit int    `json:"limit,omitempty"`
-	Page  int    `json:"page,omitempty"`
+	User  string `url:"user"`
+	Limit int    `url:"limit,omitempty"`
+	Page  int    `url:"page,omitempty"`
 }
 
 type LibraryArtists struct {
