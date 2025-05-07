@@ -112,16 +112,16 @@ func (a API) Get(dest any, method APIMethod, params any) error {
 	return a.Request(dest, http.MethodGet, method, params)
 }
 
-// Post sends an HTTP POST request to the API with the specified method and
-// parameters. The response is unmarshaled into the provided destination.
+// Post sends an HTTP POST request to the API using the specified method and
+// parameters, and decodes the response into the provided destination.
 //
 // Parameters:
 //   - dest: A pointer to the variable where the response will be unmarshaled.
-//   - method: The APIMethod representing the API endpoint to call.
-//   - params: The parameters to include in the POST request.
+//   - method: The APIMethod representing the endpoint to call.
+//   - params: The parameters to include in the request.
 //
 // Returns:
-//   - An error if the request fails or the response cannot be unmarshaled.
+//   - An error if the request fails or the response cannot be decoded.
 func (a API) Post(dest any, method APIMethod, params any) error {
 	return a.Request(dest, http.MethodPost, method, params)
 }
@@ -140,11 +140,6 @@ func (a API) Post(dest any, method APIMethod, params any) error {
 // Returns:
 //   - An error if the request fails, the response cannot be unmarshaled,
 //     or any other issue occurs.
-//
-// The function constructs the request URL with the provided parameters, sets
-// the necessary headers, sends the request, and processes the response. It uses
-// the `query.Values` package to encode parameters and the
-// `xml.Unmarshal` function to parse the XML response.
 func (a API) Request(dest any, httpMethod string, method APIMethod, params any) error {
 	p, err := query.Values(params)
 	if err != nil {

@@ -80,7 +80,7 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	if uts != "" {
 		sec, err := strconv.ParseInt(uts, 10, 64)
 		if err != nil {
-			return err
+			return nil
 		}
 		*dt = DateTime(time.Unix(sec, 0))
 		return nil
@@ -89,7 +89,7 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	if dateString != "" {
 		t, err := time.ParseInLocation(TimeFormat, dateString, time.UTC)
 		if err != nil {
-			return err
+			return nil
 		}
 
 		*dt = DateTime(t)
@@ -102,7 +102,7 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 func (dt *DateTime) UnmarshalXMLAttr(attr xml.Attr) error {
 	sec, err := strconv.ParseInt(attr.Value, 10, 64)
 	if err != nil {
-		return err
+		return nil
 	}
 	*dt = DateTime(time.Unix(sec, 0))
 	return nil
@@ -122,9 +122,15 @@ func (d Duration) String() string {
 
 // UnmarshalXML implements the xml.Unmarshaler interface for Duration.
 func (d *Duration) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
-	var sec int64
-	if err := dc.DecodeElement(&sec, &start); err != nil {
+	var s string
+	if err := dc.DecodeElement(&s, &start); err != nil {
 		return err
+	}
+
+	sec, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		// sometimes field isn't a number (e.g. "userdata: NULL")
+		return nil
 	}
 
 	*d = Duration(time.Duration(sec) * time.Second)

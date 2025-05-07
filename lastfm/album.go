@@ -13,6 +13,13 @@ type AlbumAddTagsParams struct {
 type AlbumInfoParams struct {
 	Artist      string `url:"artist"`
 	Album       string `url:"album"`
+	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	User        string `url:"username,omitempty"`
+	// The language to return the biography in, as an ISO 639 alpha-2 code.
+	Language string `url:"lang,omitempty"`
+}
+
+type AlbumInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
 	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
 	User        string `url:"username,omitempty"`
@@ -21,14 +28,15 @@ type AlbumInfoParams struct {
 }
 
 type AlbumInfo struct {
-	Name      string `xml:"name"`
-	Artist    string `xml:"artist"`
-	URL       string `xml:"url"`
-	MBID      string `xml:"mbid"`
-	Listeners int    `xml:"listeners"`
-	Playcount int    `xml:"playcount"`
-	Image     Image  `xml:"image"`
-	Tracks    []struct {
+	Name          string `xml:"name"`
+	Artist        string `xml:"artist"`
+	URL           string `xml:"url"`
+	MBID          string `xml:"mbid"`
+	Listeners     int    `xml:"listeners"`
+	Playcount     int    `xml:"playcount"`
+	UserPlaycount *int   `xml:"userplaycount"`
+	Image         Image  `xml:"image"`
+	Tracks        []struct {
 		Name       string   `xml:"name"`
 		Number     int      `xml:"rank,attr"`
 		URL        string   `xml:"url"`
@@ -43,7 +51,7 @@ type AlbumInfo struct {
 			MBID string `xml:"mbid"`
 		} `xml:"artist"`
 	} `xml:"tracks>track"`
-	Tag []struct {
+	Tags []struct {
 		Name string `xml:"name"`
 		URL  string `xml:"url"`
 	} `xml:"tags>tag"`
@@ -53,3 +61,79 @@ type AlbumInfo struct {
 		Published DateTime `xml:"published"`
 	} `xml:"wiki"`
 }
+
+// https://www.last.fm/api/show/album.getTags
+
+type AlbumTagsParams struct {
+	Artist      string `url:"artist"`
+	Album       string `url:"album"`
+	User        string `url:"username"`
+	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+}
+
+type AlbumTagsMBIDParams struct {
+	MBID        string `url:"mbid"`
+	User        string `url:"username"`
+	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+}
+
+type AlbumSelfTagsParams struct {
+	Artist      string `url:"artist"`
+	Album       string `url:"album"`
+	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+}
+
+type AlbumSelfTagsMBIDParams struct {
+	MBID        string `url:"mbid"`
+	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+}
+
+type AlbumTags struct {
+	Artist string `xml:"artist,attr"`
+	Album  string `xml:"album,attr"`
+	Tags   []struct {
+		Name string `xml:"name"`
+		URL  string `xml:"url"`
+	} `xml:"tag"`
+}
+
+// https://www.last.fm/api/show/album.getTopTags
+
+type AlbumTopTagsParams struct {
+	Artist      string `url:"artist"`
+	Album       string `url:"album"`
+	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+}
+
+type AlbumTopTagsMBIDParams struct {
+	MBID        string `url:"mbid"`
+	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+}
+
+type AlbumTopTags struct {
+	Artist string `xml:"artist,attr"`
+	Album  string `xml:"album,attr"`
+	Tags   []struct {
+		Name  string `xml:"name"`
+		URL   string `xml:"url"`
+		Count int    `xml:"count"`
+	} `xml:"tag"`
+}
+
+// https://www.last.fm/api/show/album.removeTag
+
+type AlbumRemoveTagParams struct {
+	Artist string `url:"artist"`
+	Album  string `url:"album"`
+	Tag    string `url:"tag"`
+}
+
+// https://www.last.fm/api/show/album.search
+
+type AlbumSearchParams struct {
+	Album string `url:"album"`
+	Limit uint   `url:"limit,omitempty"`
+	Page  uint   `url:"page,omitempty"`
+}
+
+type AlbumSearchResult struct{}
