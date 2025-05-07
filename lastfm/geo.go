@@ -25,6 +25,8 @@ type GeoTopArtists struct {
 	} `xml:"artist"`
 }
 
+// https://www.last.fm/api/show/geo.getTopTracks
+
 type GeoTopTracksParams struct {
 	// A country name, as defined by the ISO 3166-1 country names standard
 	Country string `url:"country"`

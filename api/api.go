@@ -38,9 +38,8 @@ type API struct {
 	APIKey string
 	// UserAgent is the user agent string sent with each request to the API.
 	UserAgent string
-
-	retries uint
-	client  HTTPClient
+	Retries   uint
+	Client    HTTPClient
 }
 
 // New returns a new instance of API with the given API key.
@@ -54,13 +53,18 @@ func NewWithTimeout(apiKey string, timeout int) *API {
 	return &API{
 		APIKey:    apiKey,
 		UserAgent: DefaultUserAgent,
-		client:    &http.Client{Timeout: time.Duration(timeout) * time.Second},
+		Client:    &http.Client{Timeout: time.Duration(timeout) * time.Second},
 	}
 }
 
 // SetUserAgent sets the user agent for the API client.
 func (a *API) SetUserAgent(userAgent string) {
 	a.UserAgent = userAgent
+}
+
+// SetRetries sets the number of retries for failed requests.
+func (a *API) SetRetries(retries uint) {
+	a.Retries = retries
 }
 
 // AuthURL returns the authentication URL for the Last.fm API. This URL can be
@@ -193,8 +197,8 @@ func (a API) DoRequest(req *http.Request) (*LFMWrapper, error) {
 		err   error
 	)
 
-	for i := uint(0); i <= a.retries; i++ {
-		res, err = a.client.Do(req)
+	for i := uint(0); i <= a.Retries; i++ {
+		res, err = a.Client.Do(req)
 		if err != nil {
 			return nil, err
 		}
