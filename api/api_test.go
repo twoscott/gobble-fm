@@ -123,12 +123,24 @@ func TestRequest(t *testing.T) {
 			expectedRetries: 0,
 		},
 		{
+			name:       "HTTP Error wrapped in LastFMError",
+			httpMethod: http.MethodGet,
+			method:     UserGetInfoMethod,
+			params: struct {
+				User string `url:"invalidparam"`
+			}{User: "testuser"},
+			mockStatusCode:  http.StatusBadRequest,
+			mockBody:        `<lfm status="failed"><error code="6">Invalid parameters</error></lfm>`,
+			wantError:       &HTTPError{StatusCode: http.StatusBadRequest, Message: "Bad Request"},
+			expectedRetries: 0,
+		},
+		{
 			name:       "POST API parameters error response",
 			httpMethod: http.MethodPost,
 			method:     AlbumAddTagsMethod,
 			params: struct {
-				Artist string `url:"artist"`
-				Album  string `url:"album"`
+				Artist string `url:"invalidparam"`
+				Album  string `url:"invalidparam"`
 			}{Artist: "testartist", Album: "testalbum"},
 			mockStatusCode:  http.StatusBadRequest,
 			mockBody:        `<lfm status="failed"><error code="6">Invalid parameters</error></lfm>`,

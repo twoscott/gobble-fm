@@ -70,7 +70,7 @@ func (e *HTTPError) Error() string {
 }
 
 // Is checks if the error matches the target error.
-func (e HTTPError) Is(target error) bool {
+func (e *HTTPError) Is(target error) bool {
 	if t, ok := target.(*HTTPError); ok {
 		return e.StatusCode == t.StatusCode
 	}
@@ -78,8 +78,9 @@ func (e HTTPError) Is(target error) bool {
 }
 
 type LastFMError struct {
-	Code    ErrorCode `xml:"code,attr"`
-	Message string    `xml:",chardata"`
+	Code      ErrorCode `xml:"code,attr"`
+	Message   string    `xml:",chardata"`
+	httpError *HTTPError
 }
 
 // Error implements the error interface.
@@ -88,11 +89,28 @@ func (e *LastFMError) Error() string {
 }
 
 // Is checks if the error matches the target error.
-func (e LastFMError) Is(target error) bool {
+func (e *LastFMError) Is(target error) bool {
 	if t, ok := target.(*LastFMError); ok {
 		return e.IsCode(t.Code)
 	}
 	return false
+}
+
+// Unwrap implements the error interface to return the underlying HTTP error.
+func (e *LastFMError) Unwrap() error {
+	return e.httpError
+}
+
+// WrapHTTPError wraps an HTTP error into the LastFMError.
+func (e *LastFMError) WrapHTTPError(httpError HTTPError) *LastFMError {
+	e.httpError = &httpError
+	return e
+}
+
+// WrapNewHTTPError wraps a new HTTP error from a HTTP response into the
+// LastFMError.
+func (e *LastFMError) WrapResponse(res *http.Response) *LastFMError {
+	return e.WrapHTTPError(*NewHTTPError(res))
 }
 
 // IsCode checks if the error code matches the given code.

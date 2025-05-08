@@ -304,7 +304,7 @@ func (a API) DoRequest(req *http.Request) (*LFMWrapper, error) {
 	}
 
 	if lferr != nil {
-		return nil, lferr
+		return nil, lferr.WrapResponse(res)
 	}
 	if res.StatusCode < http.StatusOK || res.StatusCode > http.StatusIMUsed {
 		return nil, NewHTTPError(res)
