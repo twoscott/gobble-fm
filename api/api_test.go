@@ -54,6 +54,18 @@ func TestRequest(t *testing.T) {
 			expectedRetries: 0,
 		},
 		{
+			name:       "Successful POST request",
+			httpMethod: http.MethodPost,
+			method:     AlbumAddTagsMethod,
+			params: struct {
+				Artist string `url:"artist"`
+				Album  string `url:"album"`
+			}{Artist: "testartist", Album: "testalbum"},
+			mockStatusCode:  http.StatusOK,
+			mockBody:        `<lfm status="ok"></lfm>`,
+			expectedRetries: 0,
+		},
+		{
 			name:            "HTTP client error",
 			httpMethod:      http.MethodGet,
 			method:          UserGetInfoMethod,
@@ -99,12 +111,25 @@ func TestRequest(t *testing.T) {
 			expectedRetries: 0,
 		},
 		{
-			name:       "API parameters error response",
+			name:       "GET API parameters error response",
 			httpMethod: http.MethodGet,
 			method:     UserGetInfoMethod,
 			params: struct {
-				User string `url:"user"`
+				User string `url:"invalidparam"`
 			}{User: "testuser"},
+			mockStatusCode:  http.StatusBadRequest,
+			mockBody:        `<lfm status="failed"><error code="6">Invalid parameters</error></lfm>`,
+			wantError:       &LastFMError{Code: InvalidParameters, Message: "Invalid parameters"},
+			expectedRetries: 0,
+		},
+		{
+			name:       "POST API parameters error response",
+			httpMethod: http.MethodPost,
+			method:     AlbumAddTagsMethod,
+			params: struct {
+				Artist string `url:"artist"`
+				Album  string `url:"album"`
+			}{Artist: "testartist", Album: "testalbum"},
 			mockStatusCode:  http.StatusBadRequest,
 			mockBody:        `<lfm status="failed"><error code="6">Invalid parameters</error></lfm>`,
 			wantError:       &LastFMError{Code: InvalidParameters, Message: "Invalid parameters"},
@@ -199,7 +224,16 @@ func TestRequest(t *testing.T) {
 				Name string `xml:"name"`
 			}
 
-			err := api.Request(&user, c.httpMethod, c.method, c.params)
+			var err error
+			if c.httpMethod == http.MethodGet {
+				err = api.Request(&user, c.httpMethod, c.method, c.params)
+			} else {
+				err = api.Request(nil, c.httpMethod, c.method, c.params)
+			}
+
+			if c.wantError == nil && c.wantErrorType == nil && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
 
 			if c.wantError != nil {
 				if !errors.Is(err, c.wantError) {

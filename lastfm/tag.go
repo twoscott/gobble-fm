@@ -3,7 +3,8 @@ package lastfm
 // https://www.last.fm/api/show/tag.getInfo
 
 type TagInfoParams struct {
-	Tag      string `url:"tag"`
+	Tag string `url:"tag"`
+	// The language to return the info in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
 
@@ -23,7 +24,7 @@ type TagSimilarParams struct {
 	Tag string `url:"tag"`
 }
 
-type TagSimilar struct {
+type SimilarTags struct {
 	Name string `xml:"tag,attr"`
 	Tags []struct {
 		Name       string  `xml:"name"`

@@ -56,9 +56,9 @@ type AlbumInfo struct {
 		URL  string `xml:"url"`
 	} `xml:"tags>tag"`
 	Wiki struct {
-		Summary   string   `xml:"summary"`
-		Content   string   `xml:"content"`
-		Published DateTime `xml:"published"`
+		Summary     string   `xml:"summary"`
+		Content     string   `xml:"content"`
+		PublishedAt DateTime `xml:"published"`
 	} `xml:"wiki"`
 }
 

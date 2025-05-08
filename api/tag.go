@@ -18,8 +18,8 @@ func (t Tag) Info(params lastfm.TagInfoParams) (*lastfm.TagInfo, error) {
 }
 
 // Similar returns tags similar to the given tag.
-func (t Tag) Similar(tag string) (*lastfm.TagSimilar, error) {
-	var res lastfm.TagSimilar
+func (t Tag) Similar(tag string) (*lastfm.SimilarTags, error) {
+	var res lastfm.SimilarTags
 	p := lastfm.TagSimilarParams{Tag: tag}
 	return &res, t.api.Get(&res, TagGetSimilarMethod, p)
 }

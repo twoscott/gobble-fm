@@ -23,14 +23,14 @@ func (a Album) InfoByMBID(params lastfm.AlbumInfoMBIDParams) (*lastfm.AlbumInfo,
 	return &res, a.api.Get(&res, AlbumGetInfoMethod, params)
 }
 
-// Tags returns the tags of an album for user by artist and album name.
-func (a Album) Tags(params lastfm.AlbumTagsParams) (*lastfm.AlbumTags, error) {
+// UserTags returns the tags of an album for user by artist and album name.
+func (a Album) UserTags(params lastfm.AlbumTagsParams) (*lastfm.AlbumTags, error) {
 	var res lastfm.AlbumTags
 	return &res, a.api.Get(&res, AlbumGetTagsMethod, params)
 }
 
-// TagsByMBID returns the tags of an album for user by MBID.
-func (a Album) TagsByMBID(params lastfm.AlbumTagsMBIDParams) (*lastfm.AlbumTags, error) {
+// UserTagsByMBID returns the tags of an album for user by MBID.
+func (a Album) UserTagsByMBID(params lastfm.AlbumTagsMBIDParams) (*lastfm.AlbumTags, error) {
 	var res lastfm.AlbumTags
 	return &res, a.api.Get(&res, AlbumGetTagsMethod, params)
 }

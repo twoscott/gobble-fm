@@ -4,6 +4,7 @@ package session
 type Client struct {
 	*Session
 	Album   *Album
+	Artist  *Artist
 	Auth    *Auth
 	Chart   *Chart
 	Geo     *Geo
@@ -19,6 +20,7 @@ func NewClient(apiKey, secret string) *Client {
 	return &Client{
 		Session: s,
 		Album:   NewAlbum(s),
+		Artist:  NewArtist(s),
 		Auth:    NewAuth(s),
 		Chart:   NewChart(s),
 		Geo:     NewGeo(s),
