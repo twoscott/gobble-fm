@@ -81,9 +81,5 @@ const (
 
 // BuildAPIURL constructs a Last.fm API URL with the specified parameters.
 func BuildAPIURL(params url.Values) string {
-	return buildURL(Endpoint, params)
-}
-
-func buildURL(url string, params url.Values) string {
-	return url + "?" + params.Encode()
+	return Endpoint + "?" + params.Encode()
 }
