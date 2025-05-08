@@ -1,6 +1,6 @@
 package session
 
-import "github.com/twoscott/go-fm/api"
+import "github.com/twoscott/gobble-fm/api"
 
 type Library struct {
 	*api.Library

@@ -1,8 +1,8 @@
 package session
 
 import (
-	"github.com/twoscott/go-fm/api"
-	"github.com/twoscott/go-fm/lastfm"
+	"github.com/twoscott/gobble-fm/api"
+	"github.com/twoscott/gobble-fm/lastfm"
 )
 
 type Album struct {

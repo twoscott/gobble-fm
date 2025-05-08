@@ -1,4 +1,4 @@
-module github.com/twoscott/go-fm
+module github.com/twoscott/gobble-fm
 
 go 1.24
 

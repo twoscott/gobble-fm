@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/google/go-querystring/query"
-	"github.com/twoscott/go-fm/lastfm"
+	"github.com/twoscott/gobble-fm/lastfm"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 	Version      = "2.0"
 	Endpoint     = BaseEndpoint + "/" + Version + "/"
 
-	DefaultUserAgent = "LastFM (https://github.com/twoscott/go-fm)"
+	DefaultUserAgent = "LastFM (https://github.com/twoscott/gobble-fm)"
 	DefaultRetries   = 5
 	DefaultTimeout   = 30
 )

@@ -9,7 +9,7 @@ import (
 	"slices"
 
 	"github.com/google/go-querystring/query"
-	"github.com/twoscott/go-fm/api"
+	"github.com/twoscott/gobble-fm/api"
 )
 
 type Session struct {
