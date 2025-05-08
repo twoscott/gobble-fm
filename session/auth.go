@@ -29,7 +29,8 @@ func (a Auth) Token() (string, error) {
 // the AuthGetSession method of the Last.fm API.
 func (a Auth) Session(token string) (*lastfm.Session, error) {
 	var res lastfm.Session
-	return &res, a.session.Post(&res, api.AuthGetSessionMethod, lastfm.SessionParams{Token: token})
+	p := lastfm.SessionParams{Token: token}
+	return &res, a.session.Post(&res, api.AuthGetSessionMethod, p)
 }
 
 // MobileSession returns a session for the given mobile user credentials. This
@@ -37,8 +38,6 @@ func (a Auth) Session(token string) (*lastfm.Session, error) {
 // is obtained by calling the AuthGetMobileSession method of the Last.fm API.
 func (a Auth) MobileSession(username, password string) (*lastfm.Session, error) {
 	var res lastfm.Session
-	return &res, a.session.Post(&res, api.AuthGetMobileSessionMethod, lastfm.MobileSessionParams{
-		Username: username,
-		Password: password,
-	})
+	p := lastfm.MobileSessionParams{Username: username, Password: password}
+	return &res, a.session.Post(&res, api.AuthGetMobileSessionMethod, p)
 }

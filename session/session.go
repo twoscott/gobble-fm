@@ -162,3 +162,61 @@ func (s Session) Signature(params url.Values) string {
 
 	return fmt.Sprintf("%x", md5.Sum([]byte(sig)))
 }
+
+// Client is a struct that serves as a central point for making authenticated
+// API calls. It embeds a Session and provides fields for interacting with
+// different API routes such as Album, Artist, User, etc.
+type Client struct {
+	*Session
+	Album   *Album
+	Artist  *Artist
+	Auth    *Auth
+	Chart   *Chart
+	Geo     *Geo
+	Library *Library
+	Tag     *Tag
+	User    *User
+}
+
+// New returns a new instance of Session Client with the given API key and secret.
+func NewClient(apiKey, secret string) *Client {
+	s := New(apiKey, secret)
+
+	return &Client{
+		Session: s,
+		Album:   NewAlbum(s),
+		Artist:  NewArtist(s),
+		Auth:    NewAuth(s),
+		Chart:   NewChart(s),
+		Geo:     NewGeo(s),
+		Library: NewLibrary(s),
+		Tag:     NewTag(s),
+		User:    NewUser(s),
+	}
+}
+
+// FetchLoginURL fetches a token for the user and returns the URL for the user
+// to authorize the application. The token is obtained by calling the
+// AuthGetToken method of the Last.fm API. The URL is constructed using the
+// API key and the token. If the token cannot be fetched, an error is returned.
+func (c Client) FetchLoginURL() (string, error) {
+	token, err := c.Auth.Token()
+	if err != nil {
+		return "", err
+	}
+
+	return c.AuthTokenURL(token), nil
+}
+
+// Login authenticates a user using their username and password credentials.
+// Calls the AuthGetMobileSession method of the Last.fm API and sets the session
+// key in the Client.
+func (c Client) Login(username, password string) error {
+	s, err := c.Auth.MobileSession(username, password)
+	if err != nil {
+		return err
+	}
+
+	c.SessionKey = s.Key
+	return nil
+}
