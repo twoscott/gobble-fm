@@ -1,3 +1,5 @@
+// Package lastfm provides a set of types and constants for working with the
+// Last.fm API.
 package lastfm
 
 import (
@@ -116,11 +118,16 @@ func (i ImageURL) String() string {
 
 // Resize returns the resized image URL with the specified size.
 func (i ImageURL) Resize(size ImgSize) string {
+	if i == "" {
+		return ""
+	}
+
 	return ImageURLSizeRegex.ReplaceAllString(i.String(), "i/u/"+size.PathSize())
 }
 
 type Image map[ImgSize]ImageURL
 
+// UnmarshalXML implements the xml.Unmarshaler interface for Image.
 func (i *Image) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
 	if *i == nil {
 		*i = make(Image)
@@ -143,7 +150,10 @@ func (i *Image) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
 		size = ImgSizeUndefined
 	}
 
-	(*i)[size] = url
+	if url != "" {
+		(*i)[size] = url
+	}
+
 	return nil
 }
 
@@ -166,7 +176,9 @@ func (i Image) URL() ImageURL {
 	sizes := slices.SortedFunc(maps.Keys(i), func(a, b ImgSize) int {
 		return a.Compare(b)
 	})
-	return i[sizes[len(sizes)-1]]
+
+	largest := sizes[len(sizes)-1]
+	return i[largest]
 }
 
 // SizedURL returns the URL of the image with the specified size.

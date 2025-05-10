@@ -1,7 +1,6 @@
 package lastfm
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"net/url"
@@ -9,14 +8,18 @@ import (
 	"time"
 )
 
+// The string format Last.fm uses to represent dates and times.
 const TimeFormat = "02 Jan 2006, 15:04"
 
+// IntBool wraps a boolean and represents a Last.fm integer boolean.
 type IntBool bool
 
 func (b IntBool) Bool() bool {
 	return bool(b)
 }
 
+// UnmarshalXML implements the xml.Unmarshaler interface for IntBool. Unmarshals
+// an integer value into a boolean. 1 is true, 0 is false.
 func (b *IntBool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	var val int
 	if err := d.DecodeElement(&val, &start); err != nil {
@@ -37,11 +40,6 @@ func (b *IntBool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 // DateTime wraps time.Time and represents a Last.fm DateTime.
 type DateTime time.Time
-
-// MarshalJSON implements the json.Marshaler interface for DateTime.
-func (dt DateTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Time(dt))
-}
 
 // Unix returns the Unix timestamp of the DateTime.
 func (dt DateTime) Unix() int64 {
@@ -134,11 +132,6 @@ func (d Duration) EncodeValues(key string, v *url.Values) error {
 	return nil
 }
 
-// MarshalJSON implements the json.Marshaler interface for Duration.
-func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(time.Duration(d).String())
-}
-
 // Unwrap returns the duration as a time.Duration.
 func (d Duration) Unwrap() time.Duration {
 	return time.Duration(d)
@@ -168,11 +161,6 @@ func (d *Duration) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
 
 // DurationMilli wraps a time.Duration in milliseconds.
 type DurationMilli time.Duration
-
-// MarshalJSON implements the json.Marshaler interface for Duration.
-func (d DurationMilli) MarshalJSON() ([]byte, error) {
-	return Duration(d).MarshalJSON()
-}
 
 // Unwrap returns the duration as a time.Duration.
 func (d DurationMilli) Unwrap() time.Duration {

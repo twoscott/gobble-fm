@@ -44,14 +44,14 @@ const (
 	ErrRateLimitExceeded      // 29
 )
 
-// Custom error codes
+// Custom error codes.
 const (
 	ErrAPIKeyMissing ErrorCode = iota + 100
 	ErrSecretRequired
 	ErrSessionRequired
 )
 
-// Custom error messages
+// Custom error messages.
 const (
 	APIKeyMissingMessage   = "API Key is missing"
 	SecretRequiredMessage  = "Method requires API secret"

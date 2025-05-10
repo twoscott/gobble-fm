@@ -1,6 +1,30 @@
+// Package session provides functionality for managing authenticated sessions
+// with the Last.fm API. It includes methods for setting session keys, verifying
+// credentials, and making authenticated API requests.
+//
+// The Session struct is the core of this package, encapsulating the API client
+// and session key required for authenticated requests. It provides methods for
+// sending GET and POST requests, as well as a general-purpose Request method
+// for handling different HTTP methods.
+//
+// The Client struct extends the Session functionality by embedding it and
+// providing access to various API routes such as Album, Artist, User, and more.
+// It serves as a central point for interacting with the Last.fm API.
+//
+// Key Features:
+//   - Create and manage authenticated sessions with the Last.fm API.
+//   - Manage Last.fm user authentication and session keys.
+//   - Send authenticated HTTP GET and POST requests.
+//   - Access different API routes through the Client struct.
+//
+// Usage:
+//   - Create a new Session or Client instance using the provided constructors.
+//   - Set the session key using SetSessionKey or through the Login method.
+//   - Use the Get, Post, or Request methods to interact with the Last.fm API.
 package session
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/twoscott/gobble-fm/api"
@@ -121,7 +145,7 @@ func (s Session) Request(dest any, httpMethod string, method api.APIMethod, para
 	case http.MethodPost:
 		return s.RequestBody(dest, httpMethod, api.Endpoint, p.Encode())
 	default:
-		return s.RequestBody(dest, httpMethod, api.BuildAPIURL(p), p.Encode())
+		return errors.New("unsupported HTTP method")
 	}
 }
 

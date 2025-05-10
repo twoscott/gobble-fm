@@ -1,3 +1,29 @@
+// Package api provides a client for interacting with the Last.fm API.
+// It includes methods for constructing API URLs, generating signatures,
+// and making unauthenticated requests to various Last.fm API endpoints.
+//
+// The package supports multiple levels of authorization, including API key,
+// secret, and session-based authentication. It also provides utilities for
+// parsing parameters, handling retries, and unmarshaling XML responses.
+//
+// The main entry point for interacting with the API is the `Client` struct,
+// which provides access to specific service modules such as Album, Artist,
+// User, and more.
+//
+// Key Features:
+//   - Build API URLs with query parameters.
+//   - Generate signatures for API requests using the API secret.
+//   - Make GET and POST requests to the API with automatic XML unmarshaling.
+//
+// Usage:
+//   - Create a new Client with your API key and optionally, your secret.
+//   - Use the Client to access specific API methods
+//   - Handle responses and errors using the provided types and utilities.
+//   - Customize the client with user agent and timeout settings.
+//   - Use the `Request` method for general-purpose API requests.
+//
+// For more information about the Last.fm API, visit:
+// https://www.last.fm/api
 package api
 
 import (
@@ -28,13 +54,75 @@ var (
 	DefaultTimeout   = 30
 )
 
+// BuildAPIURL constructs a Last.fm API URL with the specified parameters.
+func BuildAPIURL(params url.Values) string {
+	return Endpoint + "?" + params.Encode()
+}
+
+// ParseParameters takes a parameter of any type and converts it into a url.Values
+// type. This is useful for converting structs into query parameters for API
+// requests. If the parameter is nil, an empty url.Values is returned. If the
+// parameter cannot be converted into a url.Values, an error is returned.
+func ParseParameters(params any) (url.Values, error) {
+	var p url.Values
+	var err error
+
+	if params == nil {
+		p = url.Values{}
+	} else {
+		p, err = query.Values(params)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return p, nil
+}
+
+// Signature generates a Last.fm API signature for the given parameters and
+// secret. The signature is created by concatenating the sorted parameter keys
+// and their values, followed by the secret. The resulting string is then
+// hashed using MD5 to produce a hexadecimal representation of the hash.
+//
+// Parameters:
+//   - params: The parameters to include in the signature.
+//   - secret: The secret key to use for signing the request.
+//
+// Returns:
+//   - A hexadecimal string representing the signature.
+//
+// https://www.last.fm/api/authspec
+func Signature(params url.Values, secret string) string {
+	keys := slices.Sorted(maps.Keys(params))
+
+	var sig string
+	for _, k := range keys {
+		// exclude format and callback params from signature
+		if k == "format" || k == "callback" {
+			continue
+		}
+		sig += k + params.Get(k)
+	}
+
+	sig += secret
+	hash := md5.Sum([]byte(sig))
+
+	return hex.EncodeToString(hash[:])
+}
+
+// RequestLevel specifies the level of authorisation and authentication required
+// for an API request.
+type RequestLevel int
+
+const (
+	RequestLevelNone RequestLevel = iota
+	RequestLevelAPIKey
+	RequestLevelSecret
+	RequestLevelSession
+)
+
 // APIMethod represents a Last.fm API method parameter.
 type APIMethod string
-
-// String returns the string representation of the APIMethod.
-func (m APIMethod) String() string {
-	return string(m)
-}
 
 // https://www.last.fm/api
 const (
@@ -105,71 +193,9 @@ const (
 	UserGetWeeklyTrackChartMethod  APIMethod = "user.getWeeklyTrackChart"
 )
 
-// BuildAPIURL constructs a Last.fm API URL with the specified parameters.
-func BuildAPIURL(params url.Values) string {
-	return Endpoint + "?" + params.Encode()
-}
-
-// RequestLevel specifies the level of authorisation and authentication required
-// for an API request.
-type RequestLevel int
-
-const (
-	RequestLevelNone RequestLevel = iota
-	RequestLevelAPIKey
-	RequestLevelSecret
-	RequestLevelSession
-)
-
-// Signature generates a Last.fm API signature for the given parameters and
-// secret. The signature is created by concatenating the sorted parameter keys
-// and their values, followed by the secret. The resulting string is then
-// hashed using MD5 to produce a hexadecimal representation of the hash.
-//
-// Parameters:
-//   - params: The parameters to include in the signature.
-//   - secret: The secret key to use for signing the request.
-//
-// Returns:
-//   - A hexadecimal string representing the signature.
-//
-// https://www.last.fm/api/authspec
-func Signature(params url.Values, secret string) string {
-	keys := slices.Sorted(maps.Keys(params))
-
-	var sig string
-	for _, k := range keys {
-		// exclude format and callback params from signature
-		if k == "format" || k == "callback" {
-			continue
-		}
-		sig += k + params.Get(k)
-	}
-
-	sig += secret
-	hash := md5.Sum([]byte(sig))
-
-	return hex.EncodeToString(hash[:])
-}
-
-// ParseParameters takes a parameter of any type and converts it into a url.Values
-// type. This is useful for converting structs into query parameters for API
-// requests. If the parameter is nil, an empty url.Values is returned. If the
-// parameter cannot be converted into a url.Values, an error is returned.
-func ParseParameters(params any) (url.Values, error) {
-	var p url.Values
-	var err error
-
-	if params == nil {
-		p = url.Values{}
-	} else {
-		p, err = query.Values(params)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return p, nil
+// String returns the string representation of the APIMethod.
+func (m APIMethod) String() string {
+	return string(m)
 }
 
 // HTTPClient is an interface that defines the Do method for making HTTP
@@ -202,11 +228,13 @@ func New(apiKey, secret string) *API {
 // NewWithTimeout returns a new instance of API with the given API key and
 // timeout settings. The timeout is specified in seconds.
 func NewWithTimeout(apiKey, secret string, timeout int) *API {
+	t := time.Duration(timeout) * time.Second
+
 	return &API{
 		APIKey:    apiKey,
 		Secret:    secret,
 		UserAgent: DefaultUserAgent,
-		Client:    &http.Client{Timeout: time.Duration(timeout) * time.Second},
+		Client:    &http.Client{Timeout: t},
 	}
 }
 
@@ -214,7 +242,12 @@ func NewWithTimeout(apiKey, secret string, timeout int) *API {
 // a Last.fm API secret. This is useful if you don't plan to use the API secret
 // to sign requests to the API such as auth methods.
 func NewAPIOnly(apiKey string) *API {
-	return &API{APIKey: apiKey}
+	t := time.Duration(DefaultTimeout) * time.Second
+
+	return &API{
+		APIKey: apiKey,
+		Client: &http.Client{Timeout: t},
+	}
 }
 
 // SetUserAgent sets the user agent for the API client.
@@ -307,6 +340,11 @@ func (a API) CheckCredentials(level RequestLevel) error {
 	case RequestLevelAPIKey:
 		if a.APIKey == "" {
 			return NewLastFMError(ErrAPIKeyMissing, APIKeyMissingMessage)
+		}
+		fallthrough
+	default:
+		if a.Client == nil {
+			return errors.New("API HTTP Client is nil")
 		}
 	}
 
@@ -433,9 +471,15 @@ func (a API) RequestSigned(dest any, httpMethod string, method APIMethod, params
 	p.Set("api_key", a.APIKey)
 	p.Set("method", method.String())
 	p.Set("api_sig", a.Signature(p))
-	url := BuildAPIURL(p)
 
-	return a.RequestURL(dest, httpMethod, url)
+	switch httpMethod {
+	case http.MethodGet:
+		return a.RequestURL(dest, httpMethod, BuildAPIURL(p))
+	case http.MethodPost:
+		return a.RequestBody(dest, httpMethod, Endpoint, p.Encode())
+	default:
+		return errors.New("unsupported HTTP method")
+	}
 }
 
 // RequestURL sends an HTTP request to the API with the specified URL and
