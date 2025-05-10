@@ -13,37 +13,52 @@ type ErrorCode int
 const (
 	NoError ErrorCode = iota // 0 (No error)
 
-	_                      // 1 - "This error does not exist"
-	InvalidService         // 2
-	InvalidMethod          // 3
-	AuthenticationFailed   // 4
-	InvalidFormat          // 5
-	InvalidParameters      // 6
-	InvalidResource        // 7
-	OperationFailed        // 8
-	InvalidSessionKey      // 9
-	InvalidAPIKey          // 10
-	ServiceOffline         // 11
-	SubscribersOnly        // 12
-	InvalidMethodSignature // 13
-	UnauthorizedToken      // 14
-	ItemNotStreamable      // 15
-	ServiceUnavailable     // 16
-	UserNotLoggedIn        // 17
-	TrialExpired           // 18
-	_                      // 19 - "This error does not exist"
-	NotEnoughContent       // 20
-	NotEnoughMembers       // 21
-	NotEnoughFans          // 22
-	NotEnoughNeighbours    // 23
-	NoPeakRadio            // 24
-	RadioNotFound          // 25
-	APIKeySuspended        // 26
-	Deprecated             // 27
-	_                      // 28 - Missing
-	RateLimitExceeded      // 29
+	_                         // 1 - "This error does not exist"
+	ErrInvalidService         // 2
+	ErrInvalidMethod          // 3
+	ErrAuthenticationFailed   // 4
+	ErrInvalidFormat          // 5
+	ErrInvalidParameters      // 6
+	ErrInvalidResource        // 7
+	ErrOperationFailed        // 8
+	ErrInvalidSessionKey      // 9
+	ErrInvalidAPIKey          // 10
+	ErrServiceOffline         // 11
+	ErrSubscribersOnly        // 12
+	ErrInvalidMethodSignature // 13
+	ErrUnauthorizedToken      // 14
+	ErrItemNotStreamable      // 15
+	ErrServiceUnavailable     // 16
+	ErrUserNotLoggedIn        // 17
+	ErrTrialExpired           // 18
+	_                         // 19 - "This error does not exist"
+	ErrNotEnoughContent       // 20
+	ErrNotEnoughMembers       // 21
+	ErrNotEnoughFans          // 22
+	ErrNotEnoughNeighbours    // 23
+	ErrNoPeakRadio            // 24
+	ErrRadioNotFound          // 25
+	ErrAPIKeySuspended        // 26
+	ErrDeprecated             // 27
+	_                         // 28 - Missing
+	ErrRateLimitExceeded      // 29
 )
 
+// Custom error codes
+const (
+	ErrAPIKeyMissing ErrorCode = iota + 100
+	ErrSecretRequired
+	ErrSessionRequired
+)
+
+// Custom error messages
+const (
+	APIKeyMissingMessage   = "API Key is missing"
+	SecretRequiredMessage  = "Method requires API secret"
+	SessionRequiredMessage = "Method requires user authentication (session key)"
+)
+
+// HTTPError represents an error that occurred during an HTTP request.
 type HTTPError struct {
 	StatusCode int
 	Message    string
@@ -77,10 +92,18 @@ func (e *HTTPError) Is(target error) bool {
 	return false
 }
 
+// LastFMError represents an error returned by Last.fm.
 type LastFMError struct {
 	Code      ErrorCode `xml:"code,attr"`
 	Message   string    `xml:",chardata"`
 	httpError *HTTPError
+}
+
+func NewLastFMError(code ErrorCode, message string) *LastFMError {
+	return &LastFMError{
+		Code:    code,
+		Message: message,
+	}
 }
 
 // Error implements the error interface.
@@ -102,15 +125,15 @@ func (e *LastFMError) Unwrap() error {
 }
 
 // WrapHTTPError wraps an HTTP error into the LastFMError.
-func (e *LastFMError) WrapHTTPError(httpError HTTPError) *LastFMError {
-	e.httpError = &httpError
+func (e *LastFMError) WrapHTTPError(httpError *HTTPError) *LastFMError {
+	e.httpError = httpError
 	return e
 }
 
 // WrapNewHTTPError wraps a new HTTP error from a HTTP response into the
 // LastFMError.
 func (e *LastFMError) WrapResponse(res *http.Response) *LastFMError {
-	return e.WrapHTTPError(*NewHTTPError(res))
+	return e.WrapHTTPError(NewHTTPError(res))
 }
 
 // IsCode checks if the error code matches the given code.
@@ -125,7 +148,7 @@ func (e LastFMError) HasErrorCode() bool {
 
 // IsRateLimit checks if the error is a rate limit exceeded error.
 func (e LastFMError) IsRateLimit() bool {
-	return e.Code == RateLimitExceeded
+	return e.Code == ErrRateLimitExceeded
 }
 
 type LFMWrapper struct {

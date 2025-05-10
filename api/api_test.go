@@ -119,7 +119,7 @@ func TestRequest(t *testing.T) {
 			}{User: "testuser"},
 			mockStatusCode:  http.StatusBadRequest,
 			mockBody:        `<lfm status="failed"><error code="6">Invalid parameters</error></lfm>`,
-			wantError:       &LastFMError{Code: InvalidParameters, Message: "Invalid parameters"},
+			wantError:       &LastFMError{Code: ErrInvalidParameters, Message: "Invalid parameters"},
 			expectedRetries: 0,
 		},
 		{
@@ -144,7 +144,7 @@ func TestRequest(t *testing.T) {
 			}{Artist: "testartist", Album: "testalbum"},
 			mockStatusCode:  http.StatusBadRequest,
 			mockBody:        `<lfm status="failed"><error code="6">Invalid parameters</error></lfm>`,
-			wantError:       &LastFMError{Code: InvalidParameters, Message: "Invalid parameters"},
+			wantError:       &LastFMError{Code: ErrInvalidParameters, Message: "Invalid parameters"},
 			expectedRetries: 0,
 		},
 		{
@@ -156,7 +156,7 @@ func TestRequest(t *testing.T) {
 			}{User: "testuser"},
 			mockStatusCode:  http.StatusBadRequest,
 			mockBody:        `<lfm status="failed"><error code="29">Rate limit exceeded</error></lfm>`,
-			wantError:       &LastFMError{Code: RateLimitExceeded, Message: "Rate limit exceeded"},
+			wantError:       &LastFMError{Code: ErrRateLimitExceeded, Message: "Rate limit exceeded"},
 			expectedRetries: defaultRetries,
 		},
 		{

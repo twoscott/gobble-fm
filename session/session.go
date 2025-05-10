@@ -2,16 +2,12 @@ package session
 
 import (
 	"net/http"
-	"net/url"
 
-	"github.com/google/go-querystring/query"
 	"github.com/twoscott/gobble-fm/api"
 )
 
 type Session struct {
 	*api.API
-	// Secret is the Last.fm API secret used to sign requests.
-	Secret string
 	// SessionKey is the session key for the Last.fm API session.
 	// This key is used to authenticate requests made to the API.
 	// Last.fm session keys have infinite lifetime, so you can store it and
@@ -27,10 +23,7 @@ func New(apiKey, secret string) *Session {
 // NewWithTimeout returns a new instance of Session with the given API key,
 // secret, and timeout settings. The timeout is specified in seconds.
 func NewWithTimeout(apiKey, secret string, timeout int) *Session {
-	return &Session{
-		API:    api.NewWithTimeout(apiKey, timeout),
-		Secret: secret,
-	}
+	return &Session{API: api.NewWithTimeout(apiKey, secret, timeout)}
 }
 
 // SetSessionKey sets the session key for the Last.fm API session. This key is
@@ -40,16 +33,31 @@ func NewWithTimeout(apiKey, secret string, timeout int) *Session {
 // Use this method to set the session key manually if you have obtained it
 // through other means, such as a login process or an authentication flow, or
 // a stored session key from a previous session.
-func (s *Session) SetSessionKey(sessionKey string) {
-	s.SessionKey = sessionKey
+func (s *Session) SetSessionKey(key string) {
+	s.SessionKey = key
 }
 
-// Signature generates a signature for the given parameters using the session
-// secret. The signature is created by concatenating the sorted parameter keys
-// and their values, followed by the session secret. The resulting string is
-// then hashed using MD5 to produce a hexadecimal representation of the hash.
-func (s Session) Signature(params url.Values) string {
-	return api.Signature(params, s.Secret)
+// CheckCredentials verifies the authentication level required for an API request and
+// ensures the necessary credentials are present. It checks the presence of the
+// Last.fm API session key for requests requiring a session, the secret for
+// requests requiring a secret, and the API key for requests requiring an API
+// key. Returns an error if required credentials are missing.
+//
+// Parameters:
+//   - level: The RequestLevel indicating the level of authorization required.
+//
+// Returns:
+//   - An error if the required authentication credentials are not present.
+func (s Session) CheckCredentials(level api.RequestLevel) error {
+	switch level {
+	case api.RequestLevelSession:
+		if s.SessionKey == "" {
+			return api.NewLastFMError(api.ErrSessionRequired, api.SessionRequiredMessage)
+		}
+		fallthrough
+	default:
+		return s.API.CheckCredentials(level)
+	}
 }
 
 // Get sends an authenticated HTTP GET request to the API using the specified
@@ -80,7 +88,6 @@ func (s Session) Post(dest any, method api.APIMethod, params any) error {
 	return s.Request(dest, http.MethodPost, method, params)
 }
 
-
 // Request sends an authenticated HTTP request to the API using the specified
 // parameters and unmarshals the response into the provided destination.
 //
@@ -93,22 +100,18 @@ func (s Session) Post(dest any, method api.APIMethod, params any) error {
 // Returns:
 //   - An error if the request fails or the response cannot be unmarshaled.
 func (s Session) Request(dest any, httpMethod string, method api.APIMethod, params any) error {
-	var p url.Values
-	var err error
-
-	if params == nil {
-		p = url.Values{}
-	} else {
-		p, err = query.Values(params)
-	}
+	err := s.CheckCredentials(api.RequestLevelSession)
 	if err != nil {
 		return err
 	}
 
-	if s.SessionKey != "" {
-		p.Set("sk", s.SessionKey)
+	p, err := api.ParseParameters(params)
+	if err != nil {
+		return err
 	}
+
 	p.Set("api_key", s.APIKey)
+	p.Set("sk", s.SessionKey)
 	p.Set("method", method.String())
 	p.Set("api_sig", s.Signature(p))
 
@@ -138,10 +141,21 @@ type Client struct {
 	User    *User
 }
 
-// New returns a new instance of Session Client with the given API key and secret.
+// New returns a new instance of Session Client with the given API key and
+// secret.
 func NewClient(apiKey, secret string) *Client {
-	s := New(apiKey, secret)
+	return newClient(New(apiKey, secret))
+}
 
+// NewClientWithTimeout returns a new instance of Client with the given API key,
+// secret, and timeout settings. The timeout is specified in seconds and is used
+// to configure the HTTP client for making API requests. This allows for better
+// control over network timeouts when interacting with the API.
+func NewClientWithTimeout(apiKey, secret string, timeout int) *Client {
+	return newClient(NewWithTimeout(apiKey, secret, timeout))
+}
+
+func newClient(s *Session) *Client {
 	return &Client{
 		Session: s,
 		Album:   NewAlbum(s),
