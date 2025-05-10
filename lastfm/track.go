@@ -54,6 +54,7 @@ type TrackInfoMBIDParams struct {
 	User        string `url:"username,omitempty"`
 }
 
+// https://www.last.fm/api/show/track.getInfo#attributes
 type TrackInfo struct {
 	Title      string        `xml:"name"`
 	URL        string        `xml:"url"`
@@ -351,6 +352,7 @@ type UpdateNowPlayingParams struct {
 	Context string `url:"context,omitempty"`
 }
 
+// https://www.last.fm/api/show/track.updateNowPlaying#attributes
 type UpdateNowPlaying struct {
 	Track struct {
 		Title     string  `xml:",chardata"`

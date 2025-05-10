@@ -7,6 +7,7 @@ type TagInfoParams struct {
 	Language string `url:"lang,omitempty"`
 }
 
+// https://www.last.fm/api/show/tag.getInfo#attributes
 type TagInfo struct {
 	Name  string `xml:"name"`
 	Total int    `xml:"total"`

@@ -26,6 +26,7 @@ type AlbumInfoMBIDParams struct {
 	Language string `url:"lang,omitempty"`
 }
 
+// https://www.last.fm/api/show/album.getInfo#attributes
 type AlbumInfo struct {
 	Title         string `xml:"name"`
 	Artist        string `xml:"artist"`
@@ -111,6 +112,7 @@ type AlbumTopTagsMBIDParams struct {
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/album.getTopTags#attributes
 type AlbumTopTags struct {
 	Artist string `xml:"artist,attr"`
 	Album  string `xml:"album,attr"`

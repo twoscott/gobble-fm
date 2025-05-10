@@ -84,6 +84,7 @@ type ArtistSimilarMBIDParams struct {
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getSimilar#attributes
 type SimilarArtists struct {
 	Artist  string `xml:"artist,attr"`
 	Artists []struct {
