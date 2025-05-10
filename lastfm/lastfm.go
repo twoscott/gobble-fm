@@ -146,11 +146,10 @@ func (i *Image) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
 		return err
 	}
 
-	if size == "" {
-		size = ImgSizeUndefined
-	}
-
 	if url != "" {
+		if size == "" {
+			size = ImgSizeUndefined
+		}
 		(*i)[size] = url
 	}
 

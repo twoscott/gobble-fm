@@ -49,9 +49,9 @@ var (
 	Version      = "2.0"
 	Endpoint     = BaseEndpoint + "/" + Version + "/"
 
-	DefaultUserAgent = "LastFM (https://github.com/twoscott/gobble-fm)"
-	DefaultRetries   = 5
-	DefaultTimeout   = 30
+	DefaultUserAgent      = "LastFM (https://github.com/twoscott/gobble-fm)"
+	DefaultRetries   uint = 5
+	DefaultTimeout        = 30
 )
 
 // BuildAPIURL constructs a Last.fm API URL with the specified parameters.
@@ -59,10 +59,10 @@ func BuildAPIURL(params url.Values) string {
 	return Endpoint + "?" + params.Encode()
 }
 
-// ParseParameters takes a parameter of any type and converts it into a url.Values
-// type. This is useful for converting structs into query parameters for API
-// requests. If the parameter is nil, an empty url.Values is returned. If the
-// parameter cannot be converted into a url.Values, an error is returned.
+// ParseParameters takes a parameter of any type and converts it into a
+// url.Values type. This is useful for converting structs into query parameters
+// for API requests. If the parameter is nil, an empty url.Values is returned.
+// If the parameter cannot be converted into a url.Values, an error is returned.
 func ParseParameters(params any) (url.Values, error) {
 	var p url.Values
 	var err error
@@ -101,6 +101,7 @@ func Signature(params url.Values, secret string) string {
 		if k == "format" || k == "callback" {
 			continue
 		}
+
 		sig += k + params.Get(k)
 	}
 
@@ -209,8 +210,8 @@ type HTTPClient interface {
 // initialized with an API key and can be configured with a user agent and
 // timeout settings. It also supports retries for failed requests.
 type API struct {
-	// APIKey is the Last.fm API key used to authenticate requests.
-	APIKey string
+	// apiKey is the Last.fm API key used to authenticate requests.
+	apiKey string
 	// Secret is the Last.fm API secret used to sign requests.
 	Secret string
 	// UserAgent is the user agent string sent with each request to the API.
@@ -231,9 +232,10 @@ func NewWithTimeout(apiKey, secret string, timeout int) *API {
 	t := time.Duration(timeout) * time.Second
 
 	return &API{
-		APIKey:    apiKey,
+		apiKey:    apiKey,
 		Secret:    secret,
 		UserAgent: DefaultUserAgent,
+		Retries:   DefaultRetries,
 		Client:    &http.Client{Timeout: t},
 	}
 }
@@ -245,8 +247,10 @@ func NewAPIOnly(apiKey string) *API {
 	t := time.Duration(DefaultTimeout) * time.Second
 
 	return &API{
-		APIKey: apiKey,
-		Client: &http.Client{Timeout: t},
+		apiKey:    apiKey,
+		UserAgent: DefaultUserAgent,
+		Retries:   DefaultRetries,
+		Client:    &http.Client{Timeout: t},
 	}
 }
 
@@ -258,6 +262,11 @@ func (a *API) SetUserAgent(userAgent string) {
 // SetRetries sets the number of retries for failed requests.
 func (a *API) SetRetries(retries uint) {
 	a.Retries = retries
+}
+
+// APIKey returns the API key used to authorise requests to the Last.fm API.
+func (a API) APIKey() string {
+	return a.apiKey
 }
 
 // AuthURL returns the authentication URL for the Last.fm API with the specified
@@ -299,7 +308,7 @@ func (a API) AuthURL() string {
 //
 // https://www.last.fm/api/webauth
 func (a API) AuthCallbackURL(callbackURL string) string {
-	return AuthURL(AuthURLParams{APIKey: a.APIKey, Callback: callbackURL})
+	return AuthURL(AuthURLParams{APIKey: a.apiKey, Callback: callbackURL})
 }
 
 // AuthTokenURL returns the authentication URL for the Last.fm API with a
@@ -308,7 +317,7 @@ func (a API) AuthCallbackURL(callbackURL string) string {
 //
 // https://www.last.fm/api/desktopauth
 func (a API) AuthTokenURL(token string) string {
-	return AuthURL(AuthURLParams{APIKey: a.APIKey, Token: token})
+	return AuthURL(AuthURLParams{APIKey: a.apiKey, Token: token})
 }
 
 // Signature generates a signature for the given parameters using the API
@@ -338,7 +347,7 @@ func (a API) CheckCredentials(level RequestLevel) error {
 		}
 		fallthrough
 	case RequestLevelAPIKey:
-		if a.APIKey == "" {
+		if a.apiKey == "" {
 			return NewLastFMError(ErrAPIKeyMissing, APIKeyMissingMessage)
 		}
 		fallthrough
@@ -404,11 +413,17 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 		return err
 	}
 
-	p.Set("api_key", a.APIKey)
+	p.Set("api_key", a.apiKey)
 	p.Set("method", method.String())
-	url := BuildAPIURL(p)
 
-	return a.RequestURL(dest, httpMethod, url)
+	switch httpMethod {
+	case http.MethodGet:
+		return a.RequestURL(dest, httpMethod, BuildAPIURL(p))
+	case http.MethodPost:
+		return a.RequestBody(dest, httpMethod, Endpoint, p.Encode())
+	default:
+		return errors.New("unsupported HTTP method")
+	}
 }
 
 // GetSigned sends an HTTP GET request to the API with the specified method and
@@ -468,7 +483,7 @@ func (a API) RequestSigned(dest any, httpMethod string, method APIMethod, params
 		return err
 	}
 
-	p.Set("api_key", a.APIKey)
+	p.Set("api_key", a.apiKey)
 	p.Set("method", method.String())
 	p.Set("api_sig", a.Signature(p))
 

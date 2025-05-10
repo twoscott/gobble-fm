@@ -134,7 +134,7 @@ func (s Session) Request(dest any, httpMethod string, method api.APIMethod, para
 		return err
 	}
 
-	p.Set("api_key", s.APIKey)
+	p.Set("api_key", s.APIKey())
 	p.Set("sk", s.SessionKey)
 	p.Set("method", method.String())
 	p.Set("api_sig", s.Signature(p))
