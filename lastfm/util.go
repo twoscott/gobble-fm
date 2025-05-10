@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -34,6 +35,7 @@ func (b *IntBool) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 	return nil
 }
 
+// DateTime wraps time.Time and represents a Last.fm DateTime.
 type DateTime time.Time
 
 // MarshalJSON implements the json.Marshaler interface for DateTime.
@@ -64,8 +66,8 @@ func (dt DateTime) Format(format string) string {
 
 // UnmarshalXML implements the xml.Unmarshaler interface for DateTime.
 func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
-	var dateString string
-	if err := d.DecodeElement(&dateString, &start); err != nil {
+	var content string
+	if err := d.DecodeElement(&content, &start); err != nil {
 		return err
 	}
 
@@ -79,20 +81,24 @@ func (dt *DateTime) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
 
 	if uts != "" {
 		sec, err := strconv.ParseInt(uts, 10, 64)
-		if err != nil {
+		if err == nil {
+			*dt = DateTime(time.Unix(sec, 0))
 			return nil
 		}
-		*dt = DateTime(time.Unix(sec, 0))
-		return nil
 	}
 
-	if dateString != "" {
-		t, err := time.ParseInLocation(TimeFormat, dateString, time.UTC)
-		if err != nil {
+	if content != "" {
+		sec, err := strconv.ParseInt(content, 10, 64)
+		if err == nil {
+			*dt = DateTime(time.Unix(sec, 0))
 			return nil
 		}
 
-		*dt = DateTime(t)
+		t, err := time.ParseInLocation(TimeFormat, content, time.UTC)
+		if err == nil {
+			*dt = DateTime(t)
+			return nil
+		}
 	}
 
 	return nil
@@ -108,7 +114,30 @@ func (dt *DateTime) UnmarshalXMLAttr(attr xml.Attr) error {
 	return nil
 }
 
+// Duration wraps a time.Duration in seconds.
 type Duration time.Duration
+
+// DurationMinSec returns a Duration from minutes and seconds.
+func DurationMinSec(min, sec int) Duration {
+	return Duration(time.Duration(min)*time.Minute) + DurationSeconds(sec)
+}
+
+// DurationSeconds returns a Duration from seconds.
+func DurationSeconds(seconds int) Duration {
+	return Duration(time.Duration(seconds) * time.Second)
+}
+
+// EncodeValues implements the url.ValuesEncoder interface for Duration.
+func (d Duration) EncodeValues(key string, v *url.Values) error {
+	sec := strconv.FormatFloat(time.Duration(d).Seconds(), 'f', 0, 64)
+	v.Set(key, sec)
+	return nil
+}
+
+// MarshalJSON implements the json.Marshaler interface for Duration.
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
 
 // Unwrap returns the duration as a time.Duration.
 func (d Duration) Unwrap() time.Duration {
@@ -134,5 +163,40 @@ func (d *Duration) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
 	}
 
 	*d = Duration(time.Duration(sec) * time.Second)
+	return nil
+}
+
+// DurationMilli wraps a time.Duration in milliseconds.
+type DurationMilli time.Duration
+
+// MarshalJSON implements the json.Marshaler interface for Duration.
+func (d DurationMilli) MarshalJSON() ([]byte, error) {
+	return Duration(d).MarshalJSON()
+}
+
+// Unwrap returns the duration as a time.Duration.
+func (d DurationMilli) Unwrap() time.Duration {
+	return Duration(d).Unwrap()
+}
+
+// String returns the duration as a string.
+func (d DurationMilli) String() string {
+	return Duration(d).String()
+}
+
+// UnmarshalXML implements the xml.Unmarshaler interface for Duration.
+func (d *DurationMilli) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
+	var s string
+	if err := dc.DecodeElement(&s, &start); err != nil {
+		return err
+	}
+
+	mil, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		// sometimes field isn't a number (e.g. "userdata: NULL")
+		return nil
+	}
+
+	*d = DurationMilli(time.Duration(mil) * time.Millisecond)
 	return nil
 }

@@ -1,7 +1,6 @@
 package lastfm
 
 // https://www.last.fm/api/show/geo.getTopArtists
-
 type GeoTopArtistsParams struct {
 	// A country name, as defined by the ISO 3166-1 country names standard
 	Country string `url:"country"`
@@ -26,7 +25,6 @@ type GeoTopArtists struct {
 }
 
 // https://www.last.fm/api/show/geo.getTopTracks
-
 type GeoTopTracksParams struct {
 	// A country name, as defined by the ISO 3166-1 country names standard
 	Country string `url:"country"`
@@ -44,15 +42,15 @@ type GeoTopTracks struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
-		Name       string   `xml:"name"`
+		Title      string   `xml:"name"`
 		Rank       int      `xml:"rank,attr"`
 		Listeners  int      `xml:"listeners"`
 		URL        string   `xml:"url"`
 		MBID       string   `xml:"mbid"`
 		Duration   Duration `xml:"duration"`
 		Streamable struct {
-			Value     IntBool `xml:",chardata"`
-			Fulltrack IntBool `xml:"fulltrack,attr"`
+			Preview   IntBool `xml:",chardata"`
+			FullTrack IntBool `xml:"fulltrack,attr"`
 		} `xml:"streamable"`
 		Artist struct {
 			Name string `xml:"name"`

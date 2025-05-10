@@ -4,6 +4,11 @@ import (
 	"github.com/twoscott/gobble-fm/lastfm"
 )
 
+type recentTracksExtendedParams struct {
+	lastfm.RecentTracksParams
+	Extended bool `url:"extended,int,omitempty"`
+}
+
 type User struct {
 	api *API
 }
@@ -65,7 +70,7 @@ func (u User) RecentTracksExtended(
 	params lastfm.RecentTracksParams) (*lastfm.RecentTracksExtended, error) {
 
 	var res lastfm.RecentTracksExtended
-	p := lastfm.RecentTracksExtendedParams{RecentTracksParams: params, Extended: true}
+	p := recentTracksExtendedParams{RecentTracksParams: params, Extended: true}
 	return &res, u.api.Get(&res, UserGetRecentTracksMethod, p)
 }
 

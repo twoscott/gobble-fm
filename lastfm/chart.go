@@ -1,7 +1,6 @@
 package lastfm
 
 // https://www.last.fm/api/show/chart.getTopArtists
-
 type ChartTopArtistsParams struct {
 	Limit uint `url:"limit,omitempty"`
 	Page  uint `url:"page,omitempty"`
@@ -24,7 +23,6 @@ type ChartTopArtists struct {
 }
 
 // https://www.last.fm/api/show/chart.getTopTags
-
 type ChartTopTagsParams struct {
 	Limit uint `url:"limit,omitempty"`
 	Page  uint `url:"page,omitempty"`
@@ -46,7 +44,6 @@ type ChartTopTags struct {
 }
 
 // https://www.last.fm/api/show/chart.getTopTracks
-
 type ChartTopTracksParams struct {
 	Limit uint `url:"limit,omitempty"`
 	Page  uint `url:"page,omitempty"`
@@ -58,14 +55,14 @@ type ChartTopTracks struct {
 	TotalPages int `xml:"totalPages,attr"`
 	Total      int `xml:"total,attr"`
 	Tracks     []struct {
-		Name       string   `xml:"name"`
+		Title      string   `xml:"name"`
 		Duration   Duration `xml:"duration"`
 		Playcount  int      `xml:"playcount"`
 		Listeners  int      `xml:"listeners"`
 		URL        string   `xml:"url"`
 		MBID       string   `xml:"mbid"`
 		Streamable struct {
-			Value     IntBool `xml:",chardata"`
+			Preview   IntBool `xml:",chardata"`
 			Fulltrack IntBool `xml:"fulltrack,attr"`
 		} `xml:"streamable"`
 		Artist struct {

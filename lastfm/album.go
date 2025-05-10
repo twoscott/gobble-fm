@@ -1,7 +1,6 @@
 package lastfm
 
 // https://www.last.fm/api/show/album.addTags
-
 type AlbumAddTagsParams struct {
 	Artist string   `url:"artist"`
 	Album  string   `url:"album"`
@@ -9,26 +8,26 @@ type AlbumAddTagsParams struct {
 }
 
 // https://www.last.fm/api/show/album.getInfo
-
 type AlbumInfoParams struct {
 	Artist      string `url:"artist"`
 	Album       string `url:"album"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
 
+// https://www.last.fm/api/show/album.getInfo
 type AlbumInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
 
 type AlbumInfo struct {
-	Name          string `xml:"name"`
+	Title         string `xml:"name"`
 	Artist        string `xml:"artist"`
 	URL           string `xml:"url"`
 	MBID          string `xml:"mbid"`
@@ -37,13 +36,13 @@ type AlbumInfo struct {
 	UserPlaycount *int   `xml:"userplaycount"`
 	Image         Image  `xml:"image"`
 	Tracks        []struct {
-		Name       string   `xml:"name"`
+		Title      string   `xml:"name"`
 		Number     int      `xml:"rank,attr"`
 		URL        string   `xml:"url"`
 		Duration   Duration `xml:"duration"`
 		Streamable struct {
-			Value     IntBool `xml:",chardata"`
-			Fulltrack IntBool `xml:"fulltrack,attr"`
+			Preview   IntBool `xml:",chardata"`
+			FullTrack IntBool `xml:"fulltrack,attr"`
 		} `xml:"streamable"`
 		Artist struct {
 			Name string `xml:"name"`
@@ -63,29 +62,31 @@ type AlbumInfo struct {
 }
 
 // https://www.last.fm/api/show/album.getTags
-
 type AlbumTagsParams struct {
 	Artist      string `url:"artist"`
 	Album       string `url:"album"`
 	User        string `url:"username"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/album.getTags
 type AlbumTagsMBIDParams struct {
 	MBID        string `url:"mbid"`
 	User        string `url:"username"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/album.getTags
 type AlbumSelfTagsParams struct {
 	Artist      string `url:"artist"`
 	Album       string `url:"album"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/album.getTags
 type AlbumSelfTagsMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
 type AlbumTags struct {
@@ -98,16 +99,16 @@ type AlbumTags struct {
 }
 
 // https://www.last.fm/api/show/album.getTopTags
-
 type AlbumTopTagsParams struct {
 	Artist      string `url:"artist"`
 	Album       string `url:"album"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/album.getTopTags
 type AlbumTopTagsMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
 type AlbumTopTags struct {
@@ -121,7 +122,6 @@ type AlbumTopTags struct {
 }
 
 // https://www.last.fm/api/show/album.removeTag
-
 type AlbumRemoveTagParams struct {
 	Artist string `url:"artist"`
 	Album  string `url:"album"`
@@ -129,7 +129,6 @@ type AlbumRemoveTagParams struct {
 }
 
 // https://www.last.fm/api/show/album.search
-
 type AlbumSearchParams struct {
 	Album string `url:"album"`
 	Limit uint   `url:"limit,omitempty"`
@@ -147,7 +146,7 @@ type AlbumSearchResult struct {
 	StartIndex   int `xml:"startIndex"`
 	PerPage      int `xml:"itemsPerPage"`
 	Albums       []struct {
-		Name       string  `xml:"name"`
+		Title      string  `xml:"name"`
 		Artist     string  `xml:"artist"`
 		URL        string  `xml:"url"`
 		MBID       string  `xml:"mbid"`

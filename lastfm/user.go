@@ -1,12 +1,10 @@
 package lastfm
 
 import (
-	"encoding/xml"
 	"time"
 )
 
 // https://www.last.fm/api/show/user.getFriends
-
 type FriendsParams struct {
 	User  string `url:"user"`
 	Limit uint   `url:"limit,omitempty"`
@@ -35,13 +33,11 @@ type Friends struct {
 }
 
 // https://www.last.fm/api/show/user.getInfo
-
 type UserInfoParams struct {
 	User string `url:"user"`
 }
 
 type UserInfo struct {
-	XMLName      xml.Name `xml:"user"`
 	Name         string   `xml:"name"`
 	RealName     string   `xml:"realname"`
 	URL          string   `xml:"url"`
@@ -61,7 +57,6 @@ type UserInfo struct {
 }
 
 // https://www.last.fm/api/show/user.getLovedTracks
-
 type LovedTracksParams struct {
 	User  string `url:"user"`
 	Limit uint   `url:"limit,omitempty"`
@@ -75,7 +70,7 @@ type LovedTracks struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
-		Name   string `xml:"name"`
+		Title  string `xml:"name"`
 		URL    string `xml:"url"`
 		MBID   string `xml:"mbid"`
 		Artist struct {
@@ -85,7 +80,7 @@ type LovedTracks struct {
 		} `xml:"artist"`
 		Image      Image `xml:"image"`
 		Streamable struct {
-			Value     IntBool `xml:",chardata"`
+			Preview   IntBool `xml:",chardata"`
 			FullTrack IntBool `xml:"fulltrack,attr"`
 		} `xml:"streamable"`
 		LovedAt DateTime `xml:"date"`
@@ -93,7 +88,6 @@ type LovedTracks struct {
 }
 
 // https://www.last.fm/api/show/user.getPersonalTags
-
 type PersonalTagsParams struct {
 	User  string `url:"user"`
 	Tag   string `url:"tag"`
@@ -101,6 +95,7 @@ type PersonalTagsParams struct {
 	Page  uint   `url:"page,omitempty"`
 }
 
+// https://www.last.fm/api/show/user.getPersonalTags
 type PersonalTagsExtendedParams struct {
 	PersonalTagsParams
 	Type TagType `url:"taggingtype"`
@@ -114,7 +109,7 @@ type PersonalAlbumTags struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Albums     []struct {
-		Name   string `xml:"name"`
+		Title  string `xml:"name"`
 		URL    string `xml:"url"`
 		MBID   string `xml:"mbid"`
 		Artist struct {
@@ -150,13 +145,13 @@ type PersonalTrackTags struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
-		Name string `xml:"name"`
+		Title string `xml:"name"`
 		// All values returned from the Last.fm API are "FIXME". API issue?
 		Duration   string `xml:"duration"`
 		URL        string `xml:"url"`
 		MBID       string `xml:"mbid"`
 		Streamable struct {
-			Value     IntBool `xml:",chardata"`
+			Preview   IntBool `xml:",chardata"`
 			FullTrack IntBool `xml:"fulltrack,attr"`
 		} `xml:"streamable"`
 		Artist struct {
@@ -169,18 +164,12 @@ type PersonalTrackTags struct {
 }
 
 // https://www.last.fm/api/show/user.getRecentTracks
-
 type RecentTracksParams struct {
 	User  string    `url:"user"`
 	Limit uint      `url:"limit,omitempty"`
 	From  time.Time `url:"from,unix,omitempty"`
 	To    time.Time `url:"to,unix,omitempty"`
 	Page  uint      `url:"page,omitempty"`
-}
-
-type RecentTracksExtendedParams struct {
-	RecentTracksParams
-	Extended bool `url:"extended,int,omitempty"`
 }
 
 type RecentTracks struct {
@@ -190,7 +179,7 @@ type RecentTracks struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
-		Name       string  `xml:"name"`
+		Title      string  `xml:"name"`
 		URL        string  `xml:"url"`
 		MBID       string  `xml:"mbid"`
 		NowPlaying bool    `xml:"nowplaying,attr"`
@@ -200,8 +189,8 @@ type RecentTracks struct {
 			MBID string `xml:"mbid,attr"`
 		} `xml:"artist"`
 		Album struct {
-			Name string `xml:",chardata"`
-			MBID string `xml:"mbid,attr"`
+			Title string `xml:",chardata"`
+			MBID  string `xml:"mbid,attr"`
 		} `xml:"album"`
 		Image       Image    `xml:"image"`
 		ScrobbledAt DateTime `xml:"date"`
@@ -216,7 +205,7 @@ type RecentTracksExtended struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
-		Name       string  `xml:"name"`
+		Title      string  `xml:"name"`
 		URL        string  `xml:"url"`
 		MBID       string  `xml:"mbid"`
 		NowPlaying bool    `xml:"nowplaying,attr"`
@@ -229,8 +218,8 @@ type RecentTracksExtended struct {
 			Image Image  `xml:"image"`
 		} `xml:"artist"`
 		Album struct {
-			Name string `xml:",chardata"`
-			MBID string `xml:"mbid,attr"`
+			Title string `xml:",chardata"`
+			MBID  string `xml:"mbid,attr"`
 		} `xml:"album"`
 		Image       Image    `xml:"image"`
 		ScrobbledAt DateTime `xml:"date"`
@@ -238,7 +227,6 @@ type RecentTracksExtended struct {
 }
 
 // https://www.last.fm/api/show/user.getTopAlbums
-
 type UserTopAlbumsParams struct {
 	User   string `url:"user"`
 	Period Period `url:"period,omitempty"`
@@ -253,7 +241,7 @@ type UserTopAlbums struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Albums     []struct {
-		Name      string `xml:"name"`
+		Title     string `xml:"name"`
 		Rank      int    `xml:"rank,attr"`
 		Playcount int    `xml:"playcount"`
 		URL       string `xml:"url"`
@@ -268,7 +256,6 @@ type UserTopAlbums struct {
 }
 
 // https://www.last.fm/api/show/user.getTopArtists
-
 type UserTopArtistsParams struct {
 	User   string `url:"user"`
 	Period Period `url:"period,omitempty"`
@@ -294,7 +281,6 @@ type UserTopArtists struct {
 }
 
 // https://www.last.fm/api/show/user.getTopTags
-
 type UserTopTagsParams struct {
 	User  string `url:"user"`
 	Limit uint   `url:"limit,omitempty"`
@@ -310,7 +296,6 @@ type UserTopTags struct {
 }
 
 // https://www.last.fm/api/show/user.getTopTracks
-
 type UserTopTracksParams struct {
 	User   string `url:"user"`
 	Period Period `url:"period,omitempty"`
@@ -325,14 +310,14 @@ type UserTopTracks struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
-		Name       string   `xml:"name"`
+		Title      string   `xml:"name"`
 		Rank       int      `xml:"rank,attr"`
 		Playcount  int      `xml:"playcount"`
 		Duration   Duration `xml:"duration"`
 		URL        string   `xml:"url"`
 		MBID       string   `xml:"mbid"`
 		Streamable struct {
-			Value     IntBool `xml:",chardata"`
+			Preview   IntBool `xml:",chardata"`
 			FullTrack IntBool `xml:"fulltrack,attr"`
 		} `xml:"streamable"`
 		Artist struct {
@@ -345,7 +330,6 @@ type UserTopTracks struct {
 }
 
 // https://www.last.fm/api/show/user.getWeeklyAlbumChart
-
 type WeeklyAlbumChartParams struct {
 	User  string    `url:"user"`
 	Limit uint      `url:"limit,omitempty"`
@@ -358,7 +342,7 @@ type WeeklyAlbumChart struct {
 	From   DateTime `xml:"from,attr"`
 	To     DateTime `xml:"to,attr"`
 	Albums []struct {
-		Name      string `xml:"name"`
+		Title     string `xml:"name"`
 		Rank      int    `xml:"rank,attr"`
 		Playcount int    `xml:"playcount"`
 		URL       string `xml:"url"`
@@ -371,7 +355,6 @@ type WeeklyAlbumChart struct {
 }
 
 // https://www.last.fm/api/show/user.getWeeklyArtistChart
-
 type WeeklyArtistChartParams struct {
 	User  string    `url:"user"`
 	Limit uint      `url:"limit,omitempty"`
@@ -393,7 +376,6 @@ type WeeklyArtistChart struct {
 }
 
 // https://www.last.fm/api/show/user.getWeeklyChartList
-
 type WeeklyChartListParams struct {
 	User string `url:"user"`
 }
@@ -407,7 +389,6 @@ type WeeklyChartList struct {
 }
 
 // https://www.last.fm/api/show/user.getWeeklyTrackChart
-
 type WeeklyTrackChartParams struct {
 	User  string    `url:"user"`
 	Limit uint      `url:"limit,omitempty"`
@@ -420,7 +401,7 @@ type WeeklyTrackChart struct {
 	From   DateTime `xml:"from,attr"`
 	To     DateTime `xml:"to,attr"`
 	Tracks []struct {
-		Name      string `xml:"name"`
+		Title     string `xml:"name"`
 		Rank      int    `xml:"rank,attr"`
 		Playcount int    `xml:"playcount"`
 		URL       string `xml:"url"`

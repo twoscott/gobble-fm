@@ -1,7 +1,6 @@
 package lastfm
 
 // https://www.last.fm/api/show/library.getArtists
-
 type LibraryArtistsParams struct {
 	User  string `url:"user"`
 	Limit uint   `url:"limit,omitempty"`

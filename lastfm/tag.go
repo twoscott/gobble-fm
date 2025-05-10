@@ -1,7 +1,6 @@
 package lastfm
 
 // https://www.last.fm/api/show/tag.getInfo
-
 type TagInfoParams struct {
 	Tag string `url:"tag"`
 	// The language to return the info in, as an ISO 639 alpha-2 code.
@@ -19,7 +18,6 @@ type TagInfo struct {
 }
 
 // https://www.last.fm/api/show/tag.getSimilar
-
 type TagSimilarParams struct {
 	Tag string `url:"tag"`
 }
@@ -34,7 +32,6 @@ type SimilarTags struct {
 }
 
 // https://www.last.fm/api/show/tag.getTopAlbums
-
 type TagTopAlbumsParams struct {
 	Tag   string `url:"tag"`
 	Limit uint   `url:"limit,omitempty"`
@@ -48,7 +45,7 @@ type TagTopAlbums struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Albums     []struct {
-		Name   string `xml:"name"`
+		Title  string `xml:"name"`
 		Rank   int    `xml:"rank,attr"`
 		URL    string `xml:"url"`
 		MBID   string `xml:"mbid"`
@@ -62,7 +59,6 @@ type TagTopAlbums struct {
 }
 
 // https://www.last.fm/api/show/tag.getTopArtists
-
 type TagTopArtistsParams struct {
 	Tag   string `url:"tag"`
 	Limit uint   `url:"limit,omitempty"`
@@ -86,7 +82,6 @@ type TagTopArtists struct {
 }
 
 // https://www.last.fm/api/show/tag.getTopTags
-
 type TagTopTagsParams struct {
 	Limit  uint `url:"num_res,omitempty"`
 	Offset uint `url:"offset,omitempty"`
@@ -104,7 +99,6 @@ type TagTopTags struct {
 }
 
 // https://www.last.fm/api/show/tag.getTopTracks
-
 type TagTopTracksParams struct {
 	Tag   string `url:"tag"`
 	Limit uint   `url:"limit,omitempty"`
@@ -117,15 +111,15 @@ type TagTopTracks struct {
 	PerPage    int    `xml:"perPage,attr"`
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
-	Track      []struct {
-		Name       string   `xml:"name"`
+	Tracks     []struct {
+		Title      string   `xml:"name"`
 		Rank       int      `xml:"rank,attr"`
 		URL        string   `xml:"url"`
 		MBID       string   `xml:"mbid"`
 		Duration   Duration `xml:"duration"`
 		Streamable struct {
-			Text      IntBool `xml:",chardata"`
-			Fulltrack IntBool `xml:"fulltrack,attr"`
+			Preview   IntBool `xml:",chardata"`
+			FullTrack IntBool `xml:"fulltrack,attr"`
 		} `xml:"streamable"`
 		Artist struct {
 			Name string `xml:"name"`
@@ -137,7 +131,6 @@ type TagTopTracks struct {
 }
 
 // https://www.last.fm/api/show/tag.getWeeklyChartList
-
 type TagWeeklyChartListParams struct {
 	Tag string `url:"tag"`
 }

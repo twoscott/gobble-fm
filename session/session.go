@@ -1,12 +1,8 @@
 package session
 
 import (
-	"crypto/md5"
-	"fmt"
-	"maps"
 	"net/http"
 	"net/url"
-	"slices"
 
 	"github.com/google/go-querystring/query"
 	"github.com/twoscott/gobble-fm/api"
@@ -48,16 +44,16 @@ func (s *Session) SetSessionKey(sessionKey string) {
 	s.SessionKey = sessionKey
 }
 
-// BuildAPIURL constructs a Last.fm API URL with the specified parameters and
-// signs the call with an API signature. The signature is generated using the
-// session secret and the provided parameters.
-func (s Session) BuildAPIURL(params url.Values) string {
-	params.Set("api_sig", s.Signature(params))
-	return api.BuildAPIURL(params)
+// Signature generates a signature for the given parameters using the session
+// secret. The signature is created by concatenating the sorted parameter keys
+// and their values, followed by the session secret. The resulting string is
+// then hashed using MD5 to produce a hexadecimal representation of the hash.
+func (s Session) Signature(params url.Values) string {
+	return api.Signature(params, s.Secret)
 }
 
-// Get sends an HTTP GET request to the API using the specified method and
-// parameters, and decodes the response into the provided destination.
+// Get sends an authenticated HTTP GET request to the API using the specified
+// method and parameters, and decodes the response into the provided destination.
 //
 // Parameters:
 //   - dest: A pointer to the variable where the response will be unmarshaled.
@@ -70,8 +66,8 @@ func (s Session) Get(dest any, method api.APIMethod, params any) error {
 	return s.Request(dest, http.MethodGet, method, params)
 }
 
-// Post sends an HTTP POST request to the API with the specified method and
-// parameters. The response is unmarshaled into the provided destination.
+// Post sends an authenticated HTTP POST request to the API with the specified
+// method and parameters. The response is unmarshaled into the provided destination.
 //
 // Parameters:
 //   - dest: A pointer to the variable where the response will be unmarshaled.
@@ -84,25 +80,18 @@ func (s Session) Post(dest any, method api.APIMethod, params any) error {
 	return s.Request(dest, http.MethodPost, method, params)
 }
 
-// Request sends an HTTP request to the API with the specified parameters and
-// unmarshals the response into the provided destination.
+
+// Request sends an authenticated HTTP request to the API using the specified
+// parameters and unmarshals the response into the provided destination.
 //
 // Parameters:
-//   - dest: A pointer to the variable where the unmarshaled XML response will
-//     be stored.
+//   - dest: A pointer to the variable where the response will be unmarshaled.
 //   - httpMethod: The HTTP method to use for the request (e.g., "GET", "POST").
-//   - method: The API method to call, represented as an APIMethod type.
-//   - params: The parameters to include in the API request, typically a struct
-//     that can be serialized into query parameters.
+//   - method: The APIMethod representing the endpoint to call.
+//   - params: The parameters to include in the request.
 //
 // Returns:
-//   - An error if the request fails, the response cannot be unmarshaled,
-//     or any other issue occurs.
-//
-// The function constructs the request URL with the provided parameters, sets
-// the necessary headers, sends the request, and processes the response. It uses
-// the `query.Values` package to encode parameters and the
-// `xml.Unmarshal` function to parse the XML response.
+//   - An error if the request fails or the response cannot be unmarshaled.
 func (s Session) Request(dest any, httpMethod string, method api.APIMethod, params any) error {
 	var p url.Values
 	var err error
@@ -116,51 +105,21 @@ func (s Session) Request(dest any, httpMethod string, method api.APIMethod, para
 		return err
 	}
 
+	if s.SessionKey != "" {
+		p.Set("sk", s.SessionKey)
+	}
 	p.Set("api_key", s.APIKey)
-	p.Set("sk", s.SessionKey)
 	p.Set("method", method.String())
-	url := s.BuildAPIURL(p)
+	p.Set("api_sig", s.Signature(p))
 
-	req, err := http.NewRequest(httpMethod, url, nil)
-	if err != nil {
-		return err
+	switch httpMethod {
+	case http.MethodGet:
+		return s.RequestURL(dest, httpMethod, api.BuildAPIURL(p))
+	case http.MethodPost:
+		return s.RequestBody(dest, httpMethod, api.Endpoint, p.Encode())
+	default:
+		return s.RequestBody(dest, httpMethod, api.BuildAPIURL(p), p.Encode())
 	}
-
-	req.Header.Set("User-Agent", s.UserAgent)
-	req.Header.Set("Accept", "application/xml")
-
-	lfm, err := s.DoRequest(req)
-	if err != nil {
-		return err
-	}
-
-	if dest == nil {
-		return nil
-	}
-
-	err = lfm.UnmarshalInnerXML(dest)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	return nil
-}
-
-// Signature generates a signature for the given parameters using the session
-// secret. The signature is created by concatenating the sorted parameter keys
-// and their values, followed by the session secret. The resulting string is
-// then hashed using MD5 to produce a hexadecimal representation of the hash.
-func (s Session) Signature(params url.Values) string {
-	keys := slices.Sorted(maps.Keys(params))
-
-	var sig string
-	for _, k := range keys {
-		sig += k + params.Get(k)
-	}
-
-	sig += s.Secret
-
-	return fmt.Sprintf("%x", md5.Sum([]byte(sig)))
 }
 
 // Client is a struct that serves as a central point for making authenticated
@@ -175,6 +134,7 @@ type Client struct {
 	Geo     *Geo
 	Library *Library
 	Tag     *Tag
+	Track   *Track
 	User    *User
 }
 
@@ -191,15 +151,16 @@ func NewClient(apiKey, secret string) *Client {
 		Geo:     NewGeo(s),
 		Library: NewLibrary(s),
 		Tag:     NewTag(s),
+		Track:   NewTrack(s),
 		User:    NewUser(s),
 	}
 }
 
-// FetchLoginURL fetches a token for the user and returns the URL for the user
-// to authorize the application. The token is obtained by calling the
+// TokenLoginURL fetches a token for the user and returns the URL for the user
+// to authorize the token with. The token is obtained by calling the
 // AuthGetToken method of the Last.fm API. The URL is constructed using the
 // API key and the token. If the token cannot be fetched, an error is returned.
-func (c Client) FetchLoginURL() (string, error) {
+func (c Client) TokenLoginURL() (string, error) {
 	token, err := c.Auth.Token()
 	if err != nil {
 		return "", err

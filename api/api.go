@@ -1,16 +1,20 @@
 package api
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/google/go-querystring/query"
-	"github.com/twoscott/gobble-fm/lastfm"
 )
 
 var (
@@ -105,6 +109,37 @@ func BuildAPIURL(params url.Values) string {
 	return Endpoint + "?" + params.Encode()
 }
 
+// Signature generates a Last.fm API signature for the given parameters and
+// secret. The signature is created by concatenating the sorted parameter keys
+// and their values, followed by the secret. The resulting string is then
+// hashed using MD5 to produce a hexadecimal representation of the hash.
+//
+// Parameters:
+//   - params: The parameters to include in the signature.
+//   - secret: The secret key to use for signing the request.
+//
+// Returns:
+//   - A hexadecimal string representing the signature.
+//
+// https://www.last.fm/api/authspec
+func Signature(params url.Values, secret string) string {
+	keys := slices.Sorted(maps.Keys(params))
+
+	var sig string
+	for _, k := range keys {
+		// exclude format and callback params from signature
+		if k == "format" || k == "callback" {
+			continue
+		}
+		sig += k + params.Get(k)
+	}
+
+	sig += secret
+	hash := md5.Sum([]byte(sig))
+
+	return hex.EncodeToString(hash[:])
+}
+
 // HTTPClient is an interface that defines the Do method for making HTTP
 // requests. This allows for easier testing and mocking of HTTP requests.
 type HTTPClient interface {
@@ -120,8 +155,9 @@ type API struct {
 	APIKey string
 	// UserAgent is the user agent string sent with each request to the API.
 	UserAgent string
-	Retries   uint
-	Client    HTTPClient
+	// Retries is the number of times to retry failed requests.
+	Retries uint
+	Client  HTTPClient
 }
 
 // New returns a new instance of API with the given API key.
@@ -147,41 +183,6 @@ func (a *API) SetUserAgent(userAgent string) {
 // SetRetries sets the number of retries for failed requests.
 func (a *API) SetRetries(retries uint) {
 	a.Retries = retries
-}
-
-// AuthURL returns the authentication URL for the Last.fm API. This URL can be
-// used to redirect users to Last.fm for authentication. The URL includes the
-// API key.
-func (a API) AuthURL() string {
-	return a.AuthCallbackURL("")
-}
-
-// AuthCallbackURL returns the authentication URL for the Last.fm API with a
-// callback URL. This URL can be used to redirect users to Last.fm for
-// authentication. The URL includes the API key and the callback URL.
-func (a API) AuthCallbackURL(callbackURL string) string {
-	return a.authURL(callbackURL, "")
-}
-
-// AuthTokenURL returns the authentication URL for the Last.fm API with a
-// token. This URL can be used to redirect users to Last.fm for authentication.
-// The URL includes the API key and the token.
-func (a API) AuthTokenURL(token string) string {
-	return a.authURL("", token)
-}
-
-func (a API) authURL(cb, token string) string {
-	p := url.Values{}
-	p.Set("api_key", a.APIKey)
-
-	if cb != "" {
-		p.Set("cb", cb)
-	}
-	if token != "" {
-		p.Set("token", token)
-	}
-
-	return lastfm.AuthURL + "?" + p.Encode()
 }
 
 // Get sends an HTTP GET request to the API using the specified method and
@@ -243,37 +244,44 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 	p.Set("method", method.String())
 	url := BuildAPIURL(p)
 
-	req, err := http.NewRequest(httpMethod, url, nil)
-	if err != nil {
-		return err
-	}
-
-	req.Header.Set("User-Agent", a.UserAgent)
-	req.Header.Set("Accept", "application/xml")
-
-	res, err := a.DoRequest(req)
-	if err != nil {
-		return err
-	}
-
-	if dest == nil {
-		return nil
-	}
-
-	err = res.UnmarshalInnerXML(dest)
-	if err != nil {
-		return fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	return nil
+	return a.RequestURL(dest, httpMethod, url)
 }
 
-// DoRequest sends the HTTP request and handles the response. It retries the
-// request if the response indicates a server error or if the Last.fm API rate
-// limit is exceeded. The function decodes the XML response into a LFMWrapper
-// instance and checks for errors. If the response is successful, it returns
-// the LFMWrapper instance. If an error occurs, it returns the error.
-func (a API) DoRequest(req *http.Request) (*LFMWrapper, error) {
+// RequestURL sends an HTTP request to the API with the specified URL and
+// method, and unmarshals the response into the provided destination.
+//
+// Parameters:
+//   - dest: A pointer to the variable where the unmarshaled XML response will
+//     be stored.
+//   - method: The HTTP method to use for the request (e.g., "GET", "POST").
+//   - url: The URL to send the request to.
+//
+// Returns:
+//   - An error if the request fails, the response cannot be unmarshaled,
+//     or any other issue occurs.
+func (a API) RequestURL(dest any, method, url string) error {
+	return a.tryRequest(dest, method, url, "")
+}
+
+// RequestBody sends an HTTP request to the API with the specified URL and
+// method, with the given request body, and unmarshals the response into the
+// provided destination.
+//
+// Parameters:
+//   - dest: A pointer to the variable where the unmarshaled XML response will
+//     be stored.
+//   - method: The HTTP method to use for the request (e.g., "GET", "POST").
+//   - url: The URL to send the request to.
+//   - body: The request body to send with the request.
+//
+// Returns:
+//   - An error if the request fails, the response cannot be unmarshaled,
+//     or any other issue occurs.
+func (a API) RequestBody(dest any, method, url, body string) error {
+	return a.tryRequest(dest, method, url, body)
+}
+
+func (a API) tryRequest(dest any, method, url, body string) error {
 	var (
 		res   *http.Response
 		lfm   LFMWrapper
@@ -282,9 +290,21 @@ func (a API) DoRequest(req *http.Request) (*LFMWrapper, error) {
 	)
 
 	for i := uint(0); i <= a.Retries; i++ {
+		var req *http.Request
+
+		switch method {
+		case http.MethodGet:
+			req, err = a.createGetRequest(method, url)
+		case http.MethodPost:
+			req, err = a.createPostRequest(method, url, body)
+		}
+		if err != nil {
+			return err
+		}
+
 		res, err = a.Client.Do(req)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		err = xml.NewDecoder(res.Body).Decode(&lfm)
@@ -304,19 +324,51 @@ func (a API) DoRequest(req *http.Request) (*LFMWrapper, error) {
 	}
 
 	if lferr != nil {
-		return nil, lferr.WrapResponse(res)
+		return lferr.WrapResponse(res)
 	}
 	if res.StatusCode < http.StatusOK || res.StatusCode > http.StatusIMUsed {
-		return nil, NewHTTPError(res)
+		return NewHTTPError(res)
 	}
 	if errors.Is(err, io.EOF) {
-		return nil, fmt.Errorf("invalid XML response: %w", err)
+		return fmt.Errorf("invalid XML response: %w", err)
 	}
+	if err != nil {
+		return err
+	}
+
+	if dest == nil {
+		return nil
+	}
+	if err = lfm.UnmarshalInnerXML(dest); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+
+	return nil
+}
+
+func (a API) createGetRequest(method, url string) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return &lfm, nil
+	req.Header.Set("User-Agent", a.UserAgent)
+	req.Header.Set("Accept", "application/xml")
+
+	return req, nil
+}
+
+func (a API) createPostRequest(method, url, body string) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, strings.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("User-Agent", a.UserAgent)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/xml")
+
+	return req, nil
 }
 
 // Client is the main struct that provides access to various API services.
@@ -330,6 +382,7 @@ type Client struct {
 	Geo     *Geo
 	Library *Library
 	Tag     *Tag
+	Track   *Track
 	User    *User
 }
 
@@ -345,6 +398,7 @@ func NewClient(apiKey string) *Client {
 		Geo:     NewGeo(a),
 		Library: NewLibrary(a),
 		Tag:     NewTag(a),
+		Track:   NewTrack(a),
 		User:    NewUser(a),
 	}
 }

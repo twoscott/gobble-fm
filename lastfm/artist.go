@@ -1,23 +1,17 @@
 package lastfm
 
-import "encoding/xml"
-
 // https://www.last.fm/api/show/artist.addTags
-
 type ArtistAddTagsParams struct {
 	Artist string   `url:"artist"`
 	Tags   []string `url:"tags,comma"`
 }
 
 // https://www.last.fm/api/show/artist.getCorrection
-
 type ArtistCorrectionParams struct {
 	Artist string `url:"artist"`
 }
 
 type ArtistCorrection struct {
-	XMLName     xml.Name `xml:"corrections"`
-	Text        string   `xml:",chardata"`
 	Corrections []struct {
 		Index  int `xml:"index,attr"`
 		Artist struct {
@@ -29,18 +23,18 @@ type ArtistCorrection struct {
 }
 
 // https://www.last.fm/api/show/artist.getInfo
-
 type ArtistInfoParams struct {
 	Artist      string `url:"artist"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getInfo
 type ArtistInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
@@ -77,17 +71,17 @@ type ArtistInfo struct {
 }
 
 // https://www.last.fm/api/show/artist.getSimilar
-
 type ArtistSimilarParams struct {
 	Artist      string `url:"artist"`
 	Limit       uint   `url:"limit,omitempty"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getSimilar
 type ArtistSimilarMBIDParams struct {
 	MBID        string `url:"mbid"`
 	Limit       uint   `url:"limit,omitempty"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
 type SimilarArtists struct {
@@ -103,27 +97,29 @@ type SimilarArtists struct {
 }
 
 // https://www.last.fm/api/show/artist.getTags
-
 type ArtistTagsParams struct {
 	Artist      string `url:"artist"`
 	User        string `url:"username"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getTags
 type ArtistTagsMBIDParams struct {
 	MBID        string `url:"mbid"`
 	User        string `url:"username"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getTags
 type ArtistSelfTagsParams struct {
 	Artist      string `url:"artist"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getTags
 type ArtistSelfTagsMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
 type ArtistTags struct {
@@ -135,17 +131,17 @@ type ArtistTags struct {
 }
 
 // https://www.last.fm/api/show/artist.getTopAlbums
-
 type ArtistTopAlbumsParams struct {
 	Artist      string `url:"artist"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	Limit       uint   `url:"limit,omitempty"`
 	Page        uint   `url:"page,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getTopAlbums
 type ArtistTopAlbumsMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	Limit       uint   `url:"limit,omitempty"`
 	Page        uint   `url:"page,omitempty"`
 }
@@ -157,7 +153,7 @@ type ArtistTopAlbums struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Albums     []struct {
-		Name      string `xml:"name"`
+		Title     string `xml:"name"`
 		Playcount int    `xml:"playcount"`
 		URL       string `xml:"url"`
 		MBID      string `xml:"mbid"`
@@ -171,15 +167,15 @@ type ArtistTopAlbums struct {
 }
 
 // https://www.last.fm/api/show/artist.getTopTags
-
 type ArtistTopTagsParams struct {
 	Artist      string `url:"artist"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getTopTags
 type ArtistTopTagsMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 }
 
 type ArtistTopTags struct {
@@ -192,17 +188,17 @@ type ArtistTopTags struct {
 }
 
 // https://www.last.fm/api/show/artist.getTopTracks
-
 type ArtistTopTracksParams struct {
 	Artist      string `url:"artist"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	Limit       uint   `url:"limit,omitempty"`
 	Page        uint   `url:"page,omitempty"`
 }
 
+// https://www.last.fm/api/show/artist.getTopTracks
 type ArtistTopTracksMBIDParams struct {
 	MBID        string `url:"mbid"`
-	AutoCorrect bool   `url:"autocorrect,int,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	Limit       uint   `url:"limit,omitempty"`
 	Page        uint   `url:"page,omitempty"`
 }
@@ -214,7 +210,7 @@ type ArtistTopTracks struct {
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
 	Tracks     []struct {
-		Name       string  `xml:"name"`
+		Title      string  `xml:"name"`
 		Rank       int     `xml:"rank,attr"`
 		Playcount  int     `xml:"playcount"`
 		Listeners  int     `xml:"listeners"`
@@ -231,14 +227,12 @@ type ArtistTopTracks struct {
 }
 
 // https://www.last.fm/api/show/artist.removeTag
-
 type ArtistRemoveTagParams struct {
 	Artist string `url:"artist"`
 	Tag    string `url:"tag"`
 }
 
 // https://www.last.fm/api/show/artist.search
-
 type ArtistSearchParams struct {
 	Artist string `url:"artist"`
 	Limit  uint   `url:"limit,omitempty"`
@@ -252,9 +246,9 @@ type ArtistSearchResult struct {
 		SearchTerms string `xml:"searchTerms,attr"`
 		StartPage   int    `xml:"startPage,attr"`
 	} `xml:"Query"`
-	TotalResults string `xml:"totalResults"`
-	StartIndex   string `xml:"startIndex"`
-	PerPage      string `xml:"itemsPerPage"`
+	TotalResults int `xml:"totalResults"`
+	StartIndex   int `xml:"startIndex"`
+	PerPage      int `xml:"itemsPerPage"`
 	Artists      []struct {
 		Name       string  `xml:"name"`
 		Listeners  int     `xml:"listeners"`
