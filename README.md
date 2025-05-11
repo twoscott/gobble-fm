@@ -1,3 +1,7 @@
+[![Go Reference](https://pkg.go.dev/badge/github.com/twoscott/gobble-fm)](https://pkg.go.dev/github.com/twoscott/gobble-fm)
+[![Go Report Card](https://goreportcard.com/badge/github.com/twoscott/gobble-fm)](https://goreportcard.com/report/github.com/twoscott/gobble-fm)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://choosealicense.com/licenses/mit/)
+
 # Gobble.fm
 
 Gobble.fm is a Go library for interacting with the Last.fm API.
