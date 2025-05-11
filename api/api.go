@@ -210,8 +210,8 @@ type HTTPClient interface {
 // initialized with an API key and can be configured with a user agent and
 // timeout settings. It also supports retries for failed requests.
 type API struct {
-	// apiKey is the Last.fm API key used to authenticate requests.
-	apiKey string
+	// APIKey is the Last.fm API key used to authenticate requests.
+	APIKey string
 	// Secret is the Last.fm API secret used to sign requests.
 	Secret string
 	// UserAgent is the user agent string sent with each request to the API.
@@ -232,7 +232,7 @@ func NewWithTimeout(apiKey, secret string, timeout int) *API {
 	t := time.Duration(timeout) * time.Second
 
 	return &API{
-		apiKey:    apiKey,
+		APIKey:    apiKey,
 		Secret:    secret,
 		UserAgent: DefaultUserAgent,
 		Retries:   DefaultRetries,
@@ -247,7 +247,7 @@ func NewAPIOnly(apiKey string) *API {
 	t := time.Duration(DefaultTimeout) * time.Second
 
 	return &API{
-		apiKey:    apiKey,
+		APIKey:    apiKey,
 		UserAgent: DefaultUserAgent,
 		Retries:   DefaultRetries,
 		Client:    &http.Client{Timeout: t},
@@ -262,11 +262,6 @@ func (a *API) SetUserAgent(userAgent string) {
 // SetRetries sets the number of retries for failed requests.
 func (a *API) SetRetries(retries uint) {
 	a.Retries = retries
-}
-
-// APIKey returns the API key used to authorise requests to the Last.fm API.
-func (a API) APIKey() string {
-	return a.apiKey
 }
 
 // AuthURL returns the authentication URL for the Last.fm API with the specified
@@ -301,23 +296,23 @@ func (a API) AuthURL() string {
 	return a.AuthCallbackURL("")
 }
 
-// AuthCallbackURL returns the authentication URL for the Last.fm API with a
+// AuthCallbackURL returns the authorization URL for the Last.fm API with a
 // callback URL. This URL can be used to send users to Last.fm for
 // authentication. The user will be redirected to the callback URL after and
-// an authenticated token parameter will be appended to the URL.
+// an authorized token parameter will be appended to the URL.
 //
 // https://www.last.fm/api/webauth
 func (a API) AuthCallbackURL(callbackURL string) string {
-	return AuthURL(AuthURLParams{APIKey: a.apiKey, Callback: callbackURL})
+	return AuthURL(AuthURLParams{APIKey: a.APIKey, Callback: callbackURL})
 }
 
-// AuthTokenURL returns the authentication URL for the Last.fm API with a
+// AuthTokenURL returns the authorization URL for the Last.fm API with a
 // token. This URL can be used to send users to Last.fm for authentication where
-// the provided token will be authenticated.
+// the provided token will be authorized.
 //
 // https://www.last.fm/api/desktopauth
 func (a API) AuthTokenURL(token string) string {
-	return AuthURL(AuthURLParams{APIKey: a.apiKey, Token: token})
+	return AuthURL(AuthURLParams{APIKey: a.APIKey, Token: token})
 }
 
 // Signature generates a signature for the given parameters using the API
@@ -328,11 +323,11 @@ func (a API) Signature(params url.Values) string {
 	return Signature(params, a.Secret)
 }
 
-// CheckCredentials verifies the authentication level required for an API request and
-// ensures the necessary credentials are present. It checks the presence of the
-// API secret for requests requiring a session or secret, and the API key for
-// requests requiring an API key. Returns an error if required credentials are
-// missing.
+// CheckCredentials verifies the authorization level required for an API
+// request and ensures the necessary credentials are present. It checks the
+// presence of the API secret for requests requiring a session or secret, and
+// the API key for requests requiring an API key. Returns an error if required
+// credentials are missing.
 //
 // Parameters:
 //   - level: The RequestLevel indicating the level of authorization required.
@@ -347,7 +342,7 @@ func (a API) CheckCredentials(level RequestLevel) error {
 		}
 		fallthrough
 	case RequestLevelAPIKey:
-		if a.apiKey == "" {
+		if a.APIKey == "" {
 			return NewLastFMError(ErrAPIKeyMissing, APIKeyMissingMessage)
 		}
 		fallthrough
@@ -413,14 +408,14 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 		return err
 	}
 
-	p.Set("api_key", a.apiKey)
+	p.Set("api_key", a.APIKey)
 	p.Set("method", method.String())
 
 	switch httpMethod {
 	case http.MethodGet:
-		return a.RequestURL(dest, httpMethod, BuildAPIURL(p))
+		return a.GetURL(dest, BuildAPIURL(p))
 	case http.MethodPost:
-		return a.RequestBody(dest, httpMethod, Endpoint, p.Encode())
+		return a.PostBody(dest, Endpoint, p.Encode())
 	default:
 		return errors.New("unsupported HTTP method")
 	}
@@ -429,14 +424,6 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 // GetSigned sends an HTTP GET request to the API with the specified method and
 // parameters, signed with the API secret. The response is unmarshaled into the
 // provided destination.
-//
-// Parameters:
-//   - dest: A pointer to the variable where the response will be unmarshaled.
-//   - method: The APIMethod representing the API endpoint to call.
-//   - params: The parameters to include in the request.
-//
-// Returns:
-//   - An error if the request fails or the response cannot be decoded.
 func (a API) GetSigned(dest any, method APIMethod, params any) error {
 	return a.RequestSigned(dest, http.MethodGet, method, params)
 }
@@ -444,34 +431,25 @@ func (a API) GetSigned(dest any, method APIMethod, params any) error {
 // PostSigned sends an HTTP POST request to the API with the specified method
 // and parameters, signed with the API secret. The response is unmarshaled into
 // the provided destination.
-//
-// Parameters:
-//   - dest: A pointer to the variable where the response will be unmarshaled.
-//   - method: The APIMethod representing the API endpoint to call.
-//   - params: The parameters to include in the request.
-//
-// Returns:
-//   - An error if the request fails or the response cannot be decoded.
 func (a API) PostSigned(dest any, method APIMethod, params any) error {
 	return a.RequestSigned(dest, http.MethodPost, method, params)
 }
 
-// RequestSigned sends an HTTP request to the API with the specified parameters
-// and method, signed with the API secret. The request is made with the
-// specified HTTP method, and the response is unmarshaled into the provided
-// destination.
+// RequestSigned sends an HTTP request to the API with the specified method and
+// parameters, signed with the API secret. The response is unmarshaled into the
+// provided destination.
 //
 // Parameters:
-//   - dest: A pointer to the variable where the unmarshaled XML response will
-//     be stored.
+//   - dest: A pointer to the variable where the unmarshaled response will be
+//     stored.
 //   - httpMethod: The HTTP method to use for the request (e.g., "GET", "POST").
 //   - method: The API method to call, represented as an APIMethod type.
 //   - params: The parameters to include in the API request, typically a struct
 //     that can be serialized into query parameters.
 //
 // Returns:
-//   - An error if the request fails, the response cannot be unmarshaled,
-//     or any other issue occurs.
+//   - An error if the request fails, the response cannot be unmarshaled, or any
+//     other issue occurs.
 func (a API) RequestSigned(dest any, httpMethod string, method APIMethod, params any) error {
 	err := a.CheckCredentials(RequestLevelSecret)
 	if err != nil {
@@ -483,52 +461,30 @@ func (a API) RequestSigned(dest any, httpMethod string, method APIMethod, params
 		return err
 	}
 
-	p.Set("api_key", a.apiKey)
+	p.Set("api_key", a.APIKey)
 	p.Set("method", method.String())
 	p.Set("api_sig", a.Signature(p))
 
 	switch httpMethod {
 	case http.MethodGet:
-		return a.RequestURL(dest, httpMethod, BuildAPIURL(p))
+		return a.GetURL(dest, BuildAPIURL(p))
 	case http.MethodPost:
-		return a.RequestBody(dest, httpMethod, Endpoint, p.Encode())
+		return a.PostBody(dest, Endpoint, p.Encode())
 	default:
 		return errors.New("unsupported HTTP method")
 	}
 }
 
-// RequestURL sends an HTTP request to the API with the specified URL and
-// method, and unmarshals the response into the provided destination.
-//
-// Parameters:
-//   - dest: A pointer to the variable where the unmarshaled XML response will
-//     be stored.
-//   - method: The HTTP method to use for the request (e.g., "GET", "POST").
-//   - url: The URL to send the request to.
-//
-// Returns:
-//   - An error if the request fails, the response cannot be unmarshaled,
-//     or any other issue occurs.
-func (a API) RequestURL(dest any, method, url string) error {
-	return a.tryRequest(dest, method, url, "")
+// GetURL sends an HTTP GET request to the specified URL and unmarshals the
+// response into the provided destination.
+func (a API) GetURL(dest any, url string) error {
+	return a.tryRequest(dest, http.MethodGet, url, "")
 }
 
-// RequestBody sends an HTTP request to the API with the specified URL and
-// method, with the given request body, and unmarshals the response into the
-// provided destination.
-//
-// Parameters:
-//   - dest: A pointer to the variable where the unmarshaled XML response will
-//     be stored.
-//   - method: The HTTP method to use for the request (e.g., "GET", "POST").
-//   - url: The URL to send the request to.
-//   - body: The request body to send with the request.
-//
-// Returns:
-//   - An error if the request fails, the response cannot be unmarshaled,
-//     or any other issue occurs.
-func (a API) RequestBody(dest any, method, url, body string) error {
-	return a.tryRequest(dest, method, url, body)
+// PostBody sends an HTTP POST request to the specified URL with the given
+// request body and unmarshals the response into the provided destination.
+func (a API) PostBody(dest any, url, body string) error {
+	return a.tryRequest(dest, http.MethodPost, url, body)
 }
 
 func (a API) tryRequest(dest any, method, url, body string) error {
@@ -650,10 +606,10 @@ func NewClientWithTimeout(apiKey, secret string, timeout int) *Client {
 	return newClient(NewWithTimeout(apiKey, secret, timeout))
 }
 
-// NewClientAPIOnly returns a new instance of Client with the given API key but
+// NewClientKeyOnly returns a new instance of Client with the given API key but
 // without a Last.fm API secret. This is useful if you don't plan to use the API
 // secret to sign requests to the API such as auth methods.
-func NewClientAPIOnly(apiKey string) *Client {
+func NewClientKeyOnly(apiKey string) *Client {
 	return newClient(NewAPIOnly(apiKey))
 }
 

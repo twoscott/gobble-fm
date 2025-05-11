@@ -256,7 +256,7 @@ func (p ScrobbleMultiParams) EncodeValues(key string, v *url.Values) error {
 type ScrobbleIgnoredCode int
 
 const (
-	NotIgnored ScrobbleIgnoredCode = iota // 0
+	ScrobbleNotIgnored ScrobbleIgnoredCode = iota // 0
 
 	ArtistIgnored               // 1
 	TrackIgnored                // 2
@@ -264,6 +264,44 @@ const (
 	TimestampTooNew             // 4
 	DailyScrobbledLimitExceeded // 5
 )
+
+// Message returns the message for the ignored scrobble code.
+func (c ScrobbleIgnoredCode) Message() string {
+	switch c {
+	case ScrobbleNotIgnored:
+		return "Not ignored"
+	case ArtistIgnored:
+		return "Artist was ignored"
+	case TrackIgnored:
+		return "Track was ignored"
+	case TimestampTooOld:
+		return "Timestamp was too old"
+	case TimestampTooNew:
+		return "Timestamp was too new"
+	case DailyScrobbledLimitExceeded:
+		return "Daily scrobbled limit exceeded"
+	default:
+		return "Scrobble ignored"
+	}
+}
+
+type ScrobbleIgnored struct {
+	RawMessage string              `xml:",chardata"`
+	Code       ScrobbleIgnoredCode `xml:"code,attr"`
+}
+
+// Message returns the message for the ignored scrobble. If RawMessage is set,
+// it will be returned, other the message will be determined by the code.
+//
+// The Last.fm API seems to return code 1 (ArtistIgnored) regardless of the
+// reason for ignoring the scrobble.
+func (s ScrobbleIgnored) Message() string {
+	if s.RawMessage != "" {
+		return s.RawMessage
+	}
+
+	return s.Code.Message()
+}
 
 // https://www.last.fm/api/show/track.scrobble#attributes
 type ScrobbleResult struct {
@@ -297,11 +335,8 @@ type Scrobble struct {
 		Name      string  `xml:",chardata"`
 		Corrected IntBool `xml:"corrected,attr"`
 	} `xml:"albumArtist"`
-	Timestamp DateTime `xml:"timestamp"`
-	Ignored   struct {
-		Message string              `xml:",chardata"`
-		Code    ScrobbleIgnoredCode `xml:"code,attr"`
-	} `xml:"ignoredMessage"`
+	Timestamp DateTime        `xml:"timestamp"`
+	Ignored   ScrobbleIgnored `xml:"ignoredMessage"`
 }
 
 // https://www.last.fm/api/show/track.search
@@ -370,7 +405,7 @@ type NowPlayingUpdate struct {
 		Name      string  `xml:",chardata"`
 		Corrected IntBool `xml:"corrected,attr"`
 	} `xml:"albumArtist"`
-	IgnoredMessage struct {
+	Ignored struct {
 		Message string              `xml:",chardata"`
 		Code    ScrobbleIgnoredCode `xml:"code,attr"`
 	} `xml:"ignoredMessage"`

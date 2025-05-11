@@ -199,7 +199,7 @@ func TestAPI_Get(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.apiKey = "testapikey"
+				api.APIKey = "testapikey"
 			}
 
 			var user struct {
@@ -344,7 +344,7 @@ func TestAPI_PostSigned(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.apiKey = "testapikey"
+				api.APIKey = "testapikey"
 			}
 			if !c.noSecret {
 				api.Secret = "testsecret"
@@ -469,7 +469,7 @@ func TestAPI_Request(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.apiKey = "testapikey"
+				api.APIKey = "testapikey"
 			}
 
 			var user struct {
@@ -572,7 +572,7 @@ func TestAPI_RequestSigned(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.apiKey = "testapikey"
+				api.APIKey = "testapikey"
 			}
 			if !c.noSecret {
 				api.Secret = "testsecret"

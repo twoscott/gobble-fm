@@ -32,10 +32,10 @@ import (
 
 type Session struct {
 	*api.API
-	// SessionKey is the session key for the Last.fm API session.
-	// This key is used to authenticate requests made to the API.
-	// Last.fm session keys have infinite lifetime, so you can store it and
-	// reuse it for future requests without needing to re-authenticate the user.
+	// SessionKey is the session key for the Last.fm API session. This key is used to
+	// authenticate requests made to the API. Last.fm session keys have infinite
+	// lifetime, so you can store it and reuse it for future requests without
+	// needing to re-authenticate the user.
 	SessionKey string
 }
 
@@ -134,16 +134,16 @@ func (s Session) Request(dest any, httpMethod string, method api.APIMethod, para
 		return err
 	}
 
-	p.Set("api_key", s.APIKey())
+	p.Set("api_key", s.APIKey)
 	p.Set("sk", s.SessionKey)
 	p.Set("method", method.String())
 	p.Set("api_sig", s.Signature(p))
 
 	switch httpMethod {
 	case http.MethodGet:
-		return s.RequestURL(dest, httpMethod, api.BuildAPIURL(p))
+		return s.GetURL(dest, api.BuildAPIURL(p))
 	case http.MethodPost:
-		return s.RequestBody(dest, httpMethod, api.Endpoint, p.Encode())
+		return s.PostBody(dest, api.Endpoint, p.Encode())
 	default:
 		return errors.New("unsupported HTTP method")
 	}
@@ -194,23 +194,25 @@ func newClient(s *Session) *Client {
 	}
 }
 
-// TokenLoginURL fetches a token for the user and returns the URL for the user
-// to authorize the token with. The token is obtained by calling the
-// AuthGetToken method of the Last.fm API. The URL is constructed using the
-// API key and the token. If the token cannot be fetched, an error is returned.
-func (c Client) TokenLoginURL() (string, error) {
-	token, err := c.Auth.Token()
+// TokenLogin authenticates a user using an authorized token obtained from the
+// AuthGetToken method of the Last.fm API. The user must have authorised the
+// token via the URL returned by AuthTokenURL. The token is used to create a
+// session key, which is then set in the Client. If the token cannot be used,
+// an error is returned.
+func (c *Client) TokenLogin(token string) error {
+	s, err := c.Auth.Session(token)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return c.AuthTokenURL(token), nil
+	c.SessionKey = s.Key
+	return nil
 }
 
 // Login authenticates a user using their username and password credentials.
 // Calls the AuthGetMobileSession method of the Last.fm API and sets the session
 // key in the Client.
-func (c Client) Login(username, password string) error {
+func (c *Client) Login(username, password string) error {
 	s, err := c.Auth.MobileSession(username, password)
 	if err != nil {
 		return err

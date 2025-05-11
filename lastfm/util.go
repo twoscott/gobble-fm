@@ -115,14 +115,20 @@ func (dt *DateTime) UnmarshalXMLAttr(attr xml.Attr) error {
 // Duration wraps a time.Duration in seconds.
 type Duration time.Duration
 
+const (
+	DurationHour   = Duration(time.Hour)
+	DurationMinute = Duration(time.Minute)
+	DurationSecond = Duration(time.Second)
+)
+
 // DurationMinSec returns a Duration from minutes and seconds.
-func DurationMinSec(min, sec int) Duration {
-	return Duration(time.Duration(min)*time.Minute) + DurationSeconds(sec)
+func DurationMinSec(minutes, sec int) Duration {
+	return (Duration(minutes) * DurationMinute) + (Duration(sec) * DurationSecond)
 }
 
 // DurationSeconds returns a Duration from seconds.
 func DurationSeconds(seconds int) Duration {
-	return Duration(time.Duration(seconds) * time.Second)
+	return Duration(seconds) * DurationSecond
 }
 
 // EncodeValues implements the url.ValuesEncoder interface for Duration.
@@ -151,7 +157,7 @@ func (d *Duration) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
 
 	sec, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		// sometimes field isn't a number (e.g. "userdata: NULL")
+		// sometimes field isn't a number (e.g., "userdata: NULL")
 		return nil
 	}
 
@@ -181,7 +187,7 @@ func (d *DurationMilli) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) er
 
 	mil, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		// sometimes field isn't a number (e.g. "userdata: NULL")
+		// sometimes field isn't a number (e.g., "userdata: NULL")
 		return nil
 	}
 

@@ -62,7 +62,7 @@ const (
 	// 174x174
 	ImgSizeLarge ImgSize = "large"
 	// 300x300
-	ImgSizeExtralarge ImgSize = "extralarge"
+	ImgSizeExtraLarge ImgSize = "extralarge"
 	// 300x300?
 	ImgSizeMega ImgSize = "mega"
 	// Original upload size
@@ -78,12 +78,12 @@ func (s ImgSize) PathSize() string {
 		return "64s/"
 	case ImgSizeLarge:
 		return "174s/"
-	case ImgSizeExtralarge, ImgSizeMega:
+	case ImgSizeExtraLarge, ImgSizeMega:
 		return "300x300/"
 	case ImgSizeOriginal:
 		return ""
 	default:
-		return ImgSizeExtralarge.PathSize()
+		return ImgSizeExtraLarge.PathSize()
 	}
 }
 
@@ -100,7 +100,7 @@ func (s ImgSize) intSize() int {
 		return 2
 	case ImgSizeLarge:
 		return 3
-	case ImgSizeExtralarge:
+	case ImgSizeExtraLarge:
 		return 4
 	case ImgSizeMega:
 		return 5
@@ -158,17 +158,35 @@ func (i *Image) UnmarshalXML(dc *xml.Decoder, start xml.StartElement) error {
 
 // String returns the string representation of the Image URL.
 func (i Image) String() string {
-	return i.URL().String()
+	return i.URL()
 }
 
 // URL returns the URL of the image in its extra large size.
 // This is the same as calling SizedURL(ImgSizeExtralarge).
-func (i Image) URL() ImageURL {
+func (i Image) URL() string {
+	return i.SizedURL(ImgSizeExtraLarge)
+}
+
+// SizedURL returns the URL of the image with the specified size.
+func (i Image) SizedURL(size ImgSize) string {
+	if url, ok := i[size]; ok {
+		return url.String()
+	}
+
+	return i.url().Resize(size)
+}
+
+// OriginalURL returns the URL of the image in original size.
+func (i Image) OriginalURL() string {
+	return i.url().Resize(ImgSizeOriginal)
+}
+
+func (i Image) url() ImageURL {
 	if len(i) == 0 {
 		return ""
 	}
 
-	if url, ok := i[ImgSizeExtralarge]; ok {
+	if url, ok := i[ImgSizeExtraLarge]; ok {
 		return url
 	}
 
@@ -178,20 +196,6 @@ func (i Image) URL() ImageURL {
 
 	largest := sizes[len(sizes)-1]
 	return i[largest]
-}
-
-// SizedURL returns the URL of the image with the specified size.
-func (i Image) SizedURL(size ImgSize) string {
-	if url, ok := i[size]; ok {
-		return url.String()
-	}
-
-	return i.URL().Resize(size)
-}
-
-// OriginalURL returns the URL of the image in original size.
-func (i Image) OriginalURL() string {
-	return i.URL().Resize(ImgSizeOriginal)
 }
 
 type Period string
