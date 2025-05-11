@@ -353,7 +353,7 @@ type UpdateNowPlayingParams struct {
 }
 
 // https://www.last.fm/api/show/track.updateNowPlaying#attributes
-type UpdateNowPlaying struct {
+type NowPlayingUpdate struct {
 	Track struct {
 		Title     string  `xml:",chardata"`
 		Corrected IntBool `xml:"corrected,attr"`

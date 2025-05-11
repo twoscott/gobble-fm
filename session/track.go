@@ -74,8 +74,8 @@ func (t Track) Unlove(artist, track string) error {
 
 // UpdateNowPlaying updates the now playing track for the authenticated user.
 func (t Track) UpdateNowPlaying(
-	params lastfm.UpdateNowPlayingParams) (*lastfm.UpdateNowPlaying, error) {
+	params lastfm.UpdateNowPlayingParams) (*lastfm.NowPlayingUpdate, error) {
 
-	var res lastfm.UpdateNowPlaying
+	var res lastfm.NowPlayingUpdate
 	return &res, t.session.Post(&res, api.TrackUpdateNowPlayingMethod, params)
 }
