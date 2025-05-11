@@ -48,7 +48,9 @@ var (
 	BaseEndpoint = "https://ws.audioscrobbler.com"
 	Version      = "2.0"
 	Endpoint     = BaseEndpoint + "/" + Version + "/"
+)
 
+const (
 	DefaultUserAgent      = "LastFM (https://github.com/twoscott/gobble-fm)"
 	DefaultRetries   uint = 5
 	DefaultTimeout        = 30
