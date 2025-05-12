@@ -502,9 +502,11 @@ func (a API) tryRequest(dest any, method, url, body string) error {
 
 		switch method {
 		case http.MethodGet:
-			req, err = a.createGetRequest(method, url)
+			req, err = a.createGetRequest(url)
 		case http.MethodPost:
-			req, err = a.createPostRequest(method, url, body)
+			req, err = a.createPostRequest(url, body)
+		default:
+			req, err = a.createRequest(method, url, body)
 		}
 		if err != nil {
 			return err
@@ -554,26 +556,33 @@ func (a API) tryRequest(dest any, method, url, body string) error {
 	return nil
 }
 
-func (a API) createGetRequest(method, url string) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, nil)
+func (a API) createGetRequest(url string) (*http.Request, error) {
+	return a.createRequest(http.MethodGet, url, "")
+}
+
+func (a API) createPostRequest(url, body string) (*http.Request, error) {
+	req, err := a.createRequest(http.MethodPost, url, body)
 	if err != nil {
 		return nil, err
 	}
 
-	req.Header.Set("User-Agent", a.UserAgent)
-	req.Header.Set("Accept", "application/xml")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return req, nil
 }
 
-func (a API) createPostRequest(method, url, body string) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, strings.NewReader(body))
+func (a API) createRequest(method, url, body string) (*http.Request, error) {
+	var r io.Reader
+	if body != "" {
+		r = strings.NewReader(body)
+	}
+
+	req, err := http.NewRequest(method, url, r)
 	if err != nil {
 		return nil, err
 	}
 
 	req.Header.Set("User-Agent", a.UserAgent)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/xml")
 
 	return req, nil
