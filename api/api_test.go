@@ -118,6 +118,30 @@ func TestAPI_Get(t *testing.T) {
 			wantTries:      1,
 		},
 		{
+			name:   "API operation failed response",
+			method: UserGetInfoMethod,
+			params: struct {
+				User string `url:"user"`
+			}{User: "testuser"},
+			mockStatusCode: http.StatusBadRequest,
+			mockBody:       `<lfm status="failed"><error code="8">Operation failed</error></lfm>`,
+			wantURL:        "https://ws.audioscrobbler.com/2.0/?api_key=testapikey&method=user.getInfo&user=testuser",
+			wantError:      &LastFMError{Code: ErrOperationFailed, Message: "Operation failed"},
+			wantTries:      maxTries,
+		},
+		{
+			name:   "API service unavailable response",
+			method: UserGetInfoMethod,
+			params: struct {
+				User string `url:"user"`
+			}{User: "testuser"},
+			mockStatusCode: http.StatusBadRequest,
+			mockBody:       `<lfm status="failed"><error code="16">Service unavailable</error></lfm>`,
+			wantURL:        "https://ws.audioscrobbler.com/2.0/?api_key=testapikey&method=user.getInfo&user=testuser",
+			wantError:      &LastFMError{Code: ErrServiceUnavailable, Message: "Service unavailable"},
+			wantTries:      maxTries,
+		},
+		{
 			name:   "API rate limit error response",
 			method: UserGetInfoMethod,
 			params: struct {

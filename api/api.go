@@ -526,7 +526,7 @@ func (a API) tryRequest(dest any, method, url, body string) error {
 		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
 			continue
 		}
-		if lferr != nil && lferr.IsRateLimit() {
+		if lferr != nil && lferr.ShouldRetry() {
 			continue
 		}
 

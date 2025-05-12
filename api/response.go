@@ -9,7 +9,9 @@ import (
 
 type ErrorCode int
 
-// https://www.last.fm/api/errorcodes
+// ErrorCode represents an error code returned by the Last.fm API.
+//   - https://www.last.fm/api/errorcodes
+//   - https://lastfm-docs.github.io/api-docs/codes/
 const (
 	NoError ErrorCode = iota // 0 (No error)
 
@@ -146,9 +148,12 @@ func (e LastFMError) HasErrorCode() bool {
 	return e.Code != NoError
 }
 
-// IsRateLimit checks if the error is a rate limit exceeded error.
-func (e LastFMError) IsRateLimit() bool {
-	return e.Code == ErrRateLimitExceeded
+// ShouldRetry returns true if the error code indicates that the request can be
+// retried.
+func (e LastFMError) ShouldRetry() bool {
+	return e.Code == ErrOperationFailed ||
+		e.Code == ErrServiceUnavailable ||
+		e.Code == ErrRateLimitExceeded
 }
 
 type LFMWrapper struct {
