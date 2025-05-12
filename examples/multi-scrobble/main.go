@@ -51,7 +51,7 @@ func main() {
 			Artist:   "Gigi D'Agostino",
 			Album:    "L'Amour Toujours",
 			Duration: lastfm.DurationMinSec(4, 02),
-			Time:     time.Now(),
+			Time:     time.Now().Add(-5 * time.Minute),
 		},
 		{
 			Track:       "Move Me",
@@ -59,7 +59,7 @@ func main() {
 			Album:       "R4 / RIDGE RACER TYPE 4 / DIRECT AUDIO",
 			AlbumArtist: "Various Artists",
 			Duration:    lastfm.DurationMinSec(4, 33),
-			Time:        time.Now(),
+			Time:        time.Now().Add(-10 * time.Minute),
 		},
 	}
 

@@ -33,17 +33,14 @@ func main() {
 
 	token := "AUTHORISED_TOKEN" // obtained from the callback URL
 
-	// After the user authorizes your app, you can use the token to create a
-	// session key.
-	ssn, err := fm.Auth.Session(token)
+	// After the user authorizes your app, you can use the token to log in.
+	err := fm.TokenLogin(token)
 	if err != nil {
 		fmerr := &api.LastFMError{}
 		if errors.As(err, &fmerr) {
 			switch fmerr.Code {
 			case api.ErrUnauthorizedToken:
-				fmt.Println("Unauthorized token")
-			case api.ErrInvalidParameters:
-				fmt.Println("Invalid parameters")
+				fmt.Println("You must authorize the token before using it.")
 			default:
 				fmt.Println("Authorization failed:", err)
 				// ...
@@ -54,9 +51,6 @@ func main() {
 
 		return
 	}
-
-	// Set the session key in the Session client for future requests.
-	fm.SetSessionKey(ssn.Key)
 
 	// Now you can use the session key to make requests on behalf of the user.
 
