@@ -12,13 +12,30 @@ type AlbumInfoParams struct {
 	Artist      string `url:"artist"`
 	Album       string `url:"album"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
-	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
 
 // https://www.last.fm/api/show/album.getInfo
 type AlbumInfoMBIDParams struct {
+	MBID        string `url:"mbid"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
+	// The language to return the biography in, as an ISO 639 alpha-2 code.
+	Language string `url:"lang,omitempty"`
+}
+
+// https://www.last.fm/api/show/album.getInfo
+type AlbumUserInfoParams struct {
+	Artist      string `url:"artist"`
+	Album       string `url:"album"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
+	User        string `url:"username,omitempty"`
+	// The language to return the biography in, as an ISO 639 alpha-2 code.
+	Language string `url:"lang,omitempty"`
+}
+
+// https://www.last.fm/api/show/album.getInfo
+type AlbumUserInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	User        string `url:"username,omitempty"`
@@ -28,15 +45,14 @@ type AlbumInfoMBIDParams struct {
 
 // https://www.last.fm/api/show/album.getInfo#attributes
 type AlbumInfo struct {
-	Title         string `xml:"name"`
-	Artist        string `xml:"artist"`
-	URL           string `xml:"url"`
-	MBID          string `xml:"mbid"`
-	Listeners     int    `xml:"listeners"`
-	Playcount     int    `xml:"playcount"`
-	UserPlaycount *int   `xml:"userplaycount"`
-	Image         Image  `xml:"image"`
-	Tracks        []struct {
+	Title     string `xml:"name"`
+	Artist    string `xml:"artist"`
+	URL       string `xml:"url"`
+	MBID      string `xml:"mbid"`
+	Listeners int    `xml:"listeners"`
+	Playcount int    `xml:"playcount"`
+	Image     Image  `xml:"image"`
+	Tracks    []struct {
 		Title      string   `xml:"name"`
 		Number     int      `xml:"rank,attr"`
 		URL        string   `xml:"url"`
@@ -60,6 +76,11 @@ type AlbumInfo struct {
 		Content     string   `xml:"content"`
 		PublishedAt DateTime `xml:"published"`
 	} `xml:"wiki"`
+}
+
+type AlbumUserInfo struct {
+	AlbumInfo
+	UserPlaycount int `xml:"userplaycount"`
 }
 
 // https://www.last.fm/api/show/album.getTags

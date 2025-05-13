@@ -26,7 +26,6 @@ type ArtistCorrection struct {
 type ArtistInfoParams struct {
 	Artist      string `url:"artist"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
-	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
@@ -35,7 +34,24 @@ type ArtistInfoParams struct {
 type ArtistInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
+	// The language to return the biography in, as an ISO 639 alpha-2 code.
+	Language string `url:"lang,omitempty"`
+}
+
+// https://www.last.fm/api/show/artist.getInfo
+type ArtistUserInfoParams struct {
+	Artist      string `url:"artist"`
 	User        string `url:"username,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
+	// The language to return the biography in, as an ISO 639 alpha-2 code.
+	Language string `url:"lang,omitempty"`
+}
+
+// https://www.last.fm/api/show/artist.getInfo
+type ArtistUserInfoMBIDParams struct {
+	MBID        string `url:"mbid"`
+	User        string `url:"username,omitempty"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
@@ -47,7 +63,6 @@ type ArtistInfo struct {
 	Image          Image   `xml:"image"`
 	Listeners      int     `xml:"stats>listeners"`
 	Playcount      int     `xml:"stats>playcount"`
-	UserPlaycount  *int    `xml:"stats>userplaycount"`
 	Streamable     IntBool `xml:"streamable"`
 	OnTour         IntBool `xml:"ontour"`
 	SimilarArtists []struct {
@@ -68,6 +83,11 @@ type ArtistInfo struct {
 		Content     string   `xml:"content"`
 		PublishedAt DateTime `xml:"published"`
 	} `xml:"bio"`
+}
+
+type ArtistUserInfo struct {
+	ArtistInfo
+	UserPlaycount int `xml:"stats>userplaycount"`
 }
 
 // https://www.last.fm/api/show/artist.getSimilar

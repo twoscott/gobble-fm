@@ -30,6 +30,21 @@ func (t Track) InfoByMBID(params lastfm.TrackInfoMBIDParams) (*lastfm.TrackInfo,
 	return &res, t.api.Get(&res, TrackGetInfoMethod, params)
 }
 
+// UserInfo returns the information of a track for user by artist and track
+// name.
+func (t Track) UserInfo(params lastfm.TrackUserInfoParams) (*lastfm.TrackUserInfo, error) {
+	var res lastfm.TrackUserInfo
+	return &res, t.api.Get(&res, TrackGetInfoMethod, params)
+}
+
+// UserInfoByMBID returns the information of a track for user by MBID.
+func (t Track) UserInfoByMBID(
+	params lastfm.TrackUserInfoMBIDParams) (*lastfm.TrackUserInfo, error) {
+
+	var res lastfm.TrackUserInfo
+	return &res, t.api.Get(&res, TrackGetInfoMethod, params)
+}
+
 // Similar returns the similar tracks of a track by artist and track name.
 func (t Track) Similar(params lastfm.TrackSimilarParams) (*lastfm.SimilarTracks, error) {
 	var res lastfm.SimilarTracks

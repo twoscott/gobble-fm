@@ -30,6 +30,20 @@ func (a Artist) InfoByMBID(params lastfm.ArtistInfoMBIDParams) (*lastfm.ArtistIn
 	return &res, a.api.Get(&res, ArtistGetInfoMethod, params)
 }
 
+// UserInfo returns the information of an artist for user by artist name.
+func (a Artist) UserInfo(params lastfm.ArtistUserInfoParams) (*lastfm.ArtistUserInfo, error) {
+	var res lastfm.ArtistUserInfo
+	return &res, a.api.Get(&res, ArtistGetInfoMethod, params)
+}
+
+// UserInfoByMBID returns the information of an artist for user by MBID.
+func (a Artist) UserInfoByMBID(
+	params lastfm.ArtistUserInfoMBIDParams) (*lastfm.ArtistUserInfo, error) {
+
+	var res lastfm.ArtistUserInfo
+	return &res, a.api.Get(&res, ArtistGetInfoMethod, params)
+}
+
 // Similar returns the similar artists of an artist by artist name.
 func (a Artist) Similar(params lastfm.ArtistSimilarParams) (*lastfm.SimilarArtists, error) {
 	var res lastfm.SimilarArtists

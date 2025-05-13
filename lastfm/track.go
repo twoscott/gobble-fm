@@ -44,11 +44,24 @@ type TrackInfoParams struct {
 	Artist      string `url:"artist"`
 	Track       string `url:"track"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
-	User        string `url:"username,omitempty"`
 }
 
 // https://www.last.fm/api/show/track.getInfo
 type TrackInfoMBIDParams struct {
+	MBID        string `url:"mbid"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
+}
+
+// https://www.last.fm/api/show/track.getInfo
+type TrackUserInfoParams struct {
+	Artist      string `url:"artist"`
+	Track       string `url:"track"`
+	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
+	User        string `url:"username,omitempty"`
+}
+
+// https://www.last.fm/api/show/track.getInfo
+type TrackUserInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
 	User        string `url:"username,omitempty"`
@@ -60,13 +73,13 @@ type TrackInfo struct {
 	URL        string        `xml:"url"`
 	MBID       string        `xml:"mbid"`
 	Duration   DurationMilli `xml:"duration"`
+	Listeners  int           `xml:"listeners"`
+	Playcount  int           `xml:"playcount"`
 	Streamable struct {
 		Preview   IntBool `xml:",chardata"`
 		FullTrack IntBool `xml:"fulltrack,attr"`
 	} `xml:"streamable"`
-	Listeners int `xml:"listeners"`
-	Playcount int `xml:"playcount"`
-	Artist    struct {
+	Artist struct {
 		Name string `xml:"name"`
 		URL  string `xml:"url"`
 		MBID string `xml:"mbid"`
@@ -79,9 +92,7 @@ type TrackInfo struct {
 		Position int    `xml:"position,attr"`
 		Image    Image  `xml:"image"`
 	} `xml:"album"`
-	UserPlaycount *int     `xml:"userplaycount"`
-	UserLoved     *IntBool `xml:"userloved"`
-	TopTags       []struct {
+	TopTags []struct {
 		Name string `xml:"name"`
 		URL  string `xml:"url"`
 	} `xml:"toptags>tag"`
@@ -90,6 +101,12 @@ type TrackInfo struct {
 		Content   string   `xml:"content"`
 		Published DateTime `xml:"published"`
 	} `xml:"wiki"`
+}
+
+type TrackUserInfo struct {
+	TrackInfo
+	UserPlaycount int     `xml:"userplaycount"`
+	UserLoved     IntBool `xml:"userloved"`
 }
 
 // https://www.last.fm/api/show/track.getSimilar
