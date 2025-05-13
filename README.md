@@ -1,10 +1,10 @@
 # Gobble.fm
 
-[![GoDoc](https://pkg.go.dev/badge/github.com/twoscott/gobble-fm?style=flat-round)](https://pkg.go.dev/github.com/twoscott/gobble-fm)
-[![Go Version 1.23+](https://img.shields.io/badge/go-1.23+-teal?style=flat-round)](https://golang.org/dl/)
+[![Go Reference](https://img.shields.io/badge/reference-007d9c?style=flat-round&color=00ADD8&logo=go&logoColor=ffffff)](https://pkg.go.dev/github.com/twoscott/gobble-fm)
+[![Go Version 1.23+](https://img.shields.io/badge/go-1.23+-00ADD8?style=flat-round)](https://golang.org/dl/)
+[![Go Tests](https://img.shields.io/github/actions/workflow/status/twoscott/gobble-fm/test.yml?branch=master&style=flat-round&label=tests)](https://github.com/twoscott/gobble-fm/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/twoscott/gobble-fm?style=flat-round)](https://goreportcard.com/report/github.com/twoscott/gobble-fm)
 [![Last Commit](https://img.shields.io/github/last-commit/twoscott/gobble-fm?logo=github&logoColor=ffffff&style=flat-round)](https://github.com/twoscott/gobble-fm/commits/master)
-[![MIT License](https://img.shields.io/badge/license-MIT-red.svg?style=flat-round)](https://choosealicense.com/licenses/mit/)
 
 Gobble.fm is a Go library for interacting with the Last.fm API.
 
