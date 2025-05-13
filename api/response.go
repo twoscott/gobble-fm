@@ -101,6 +101,8 @@ type LastFMError struct {
 	httpError *HTTPError
 }
 
+// NewLastFMError creates a new LastFMError instance from an error code and
+// message.
 func NewLastFMError(code ErrorCode, message string) *LastFMError {
 	return &LastFMError{
 		Code:    code,
