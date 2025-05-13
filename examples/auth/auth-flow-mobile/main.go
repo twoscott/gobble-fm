@@ -22,7 +22,7 @@ func main() {
 
 	err := fm.Login(username, password)
 	if err != nil {
-		fmerr := &api.LastFMError{}
+		var fmerr *api.LastFMError
 		if errors.As(err, &fmerr) {
 			switch fmerr.Code {
 			case api.ErrAuthenticationFailed:

@@ -23,7 +23,7 @@ func main() {
 
 	res, err := fm.User.RecentTracks(params)
 	if err != nil {
-		fmerr := &api.LastFMError{}
+		var fmerr *api.LastFMError
 		if errors.As(err, &fmerr) {
 			switch fmerr.Code {
 			case api.ErrInvalidParameters:

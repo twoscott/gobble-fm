@@ -36,7 +36,7 @@ func main() {
 	// After the user authorizes your app, you can use the token to log in.
 	err := fm.TokenLogin(token)
 	if err != nil {
-		fmerr := &api.LastFMError{}
+		var fmerr *api.LastFMError
 		if errors.As(err, &fmerr) {
 			switch fmerr.Code {
 			case api.ErrUnauthorizedToken:
