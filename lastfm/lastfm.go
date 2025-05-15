@@ -6,7 +6,6 @@ import (
 	"encoding/xml"
 	"maps"
 	"regexp"
-	"slices"
 )
 
 const (
@@ -37,13 +36,14 @@ const (
 )
 
 // ImageURLSizeRegex is a regex to match the image URL size.
-// It matches the following patterns:
+// Common sizes:
 // - i/u/34s/
 // - i/u/64s/
 // - i/u/174s/
 // - i/u/300x300/
+// - i/u/ar0/
 // - i/u/
-var ImageURLSizeRegex = regexp.MustCompile(`i/u/(34s/|64s/|174s/|300x300/)?`)
+var ImageURLSizeRegex = regexp.MustCompile(`i/u/(.+?\/)?`)
 
 // BuildImageURL builds the image URL for the given size and hash.
 func BuildImageURL(size ImgSize, hash string) ImageURL {
@@ -84,28 +84,6 @@ func (s ImgSize) PathSize() string {
 		return ""
 	default:
 		return ImgSizeExtraLarge.PathSize()
-	}
-}
-
-// Compare returns -1 if s < other, 0 if s == other, and 1 if s > other.
-func (s ImgSize) Compare(other ImgSize) int {
-	return s.intSize() - other.intSize()
-}
-
-func (s ImgSize) intSize() int {
-	switch s {
-	case ImgSizeSmall:
-		return 1
-	case ImgSizeMedium:
-		return 2
-	case ImgSizeLarge:
-		return 3
-	case ImgSizeExtraLarge:
-		return 4
-	case ImgSizeMega:
-		return 5
-	default:
-		return 0
 	}
 }
 
@@ -161,10 +139,15 @@ func (i Image) String() string {
 	return i.URL()
 }
 
-// URL returns the URL of the image in its extra large size.
+// URL returns the URL of the image in its extra large size (300x300).
 // This is the same as calling SizedURL(ImgSizeExtralarge).
 func (i Image) URL() string {
 	return i.SizedURL(ImgSizeExtraLarge)
+}
+
+// OriginalURL returns the URL of the image in original size.
+func (i Image) OriginalURL() string {
+	return i.url().Resize(ImgSizeOriginal)
 }
 
 // SizedURL returns the URL of the image with the specified size.
@@ -176,26 +159,16 @@ func (i Image) SizedURL(size ImgSize) string {
 	return i.url().Resize(size)
 }
 
-// OriginalURL returns the URL of the image in original size.
-func (i Image) OriginalURL() string {
-	return i.url().Resize(ImgSizeOriginal)
-}
-
 func (i Image) url() ImageURL {
-	if len(i) == 0 {
-		return ""
-	}
-
 	if url, ok := i[ImgSizeExtraLarge]; ok {
 		return url
 	}
 
-	sizes := slices.SortedFunc(maps.Keys(i), func(a, b ImgSize) int {
-		return a.Compare(b)
-	})
+	for url := range maps.Values(i) {
+		return url
+	}
 
-	largest := sizes[len(sizes)-1]
-	return i[largest]
+	return ""
 }
 
 type Period string
