@@ -9,6 +9,11 @@ type recentTracksExtendedParams struct {
 	Extended bool `url:"extended,int,omitempty"`
 }
 
+type personalTagsExtendedParams struct {
+	lastfm.UserTagsParams
+	Type lastfm.TagType `url:"taggingtype"`
+}
+
 type User struct {
 	api *API
 }
@@ -37,24 +42,24 @@ func (u User) LovedTracks(params lastfm.LovedTracksParams) (*lastfm.LovedTracks,
 	return &res, u.api.Get(&res, UserGetLovedTracksMethod, params)
 }
 
-// PersonalAlbumTags returns the personal album tags of a user.
-func (u User) PersonalAlbumTags(params lastfm.PersonalTagsParams) (*lastfm.PersonalAlbumTags, error) {
-	var res lastfm.PersonalAlbumTags
-	p := lastfm.PersonalTagsExtendedParams{PersonalTagsParams: params, Type: lastfm.TagTypeAlbum}
+// TaggedAlbums returns the albums tagged by a user with the given tag.
+func (u User) TaggedAlbums(params lastfm.UserTagsParams) (*lastfm.UserAlbumTags, error) {
+	var res lastfm.UserAlbumTags
+	p := personalTagsExtendedParams{UserTagsParams: params, Type: lastfm.TagTypeAlbum}
 	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, p)
 }
 
-// PersonalArtistTags returns the personal artist tags of a user.
-func (u User) PersonalArtistTags(params lastfm.PersonalTagsParams) (*lastfm.PersonalArtistTags, error) {
-	var res lastfm.PersonalArtistTags
-	p := lastfm.PersonalTagsExtendedParams{PersonalTagsParams: params, Type: lastfm.TagTypeArtist}
+// TaggedArtists returns the artists tagged by a user with the given tag.
+func (u User) TaggedArtists(params lastfm.UserTagsParams) (*lastfm.UserArtistTags, error) {
+	var res lastfm.UserArtistTags
+	p := personalTagsExtendedParams{UserTagsParams: params, Type: lastfm.TagTypeArtist}
 	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, p)
 }
 
-// PersonalTrackTags returns the personal track tags of a user.
-func (u User) PersonalTrackTags(params lastfm.PersonalTagsParams) (*lastfm.PersonalTrackTags, error) {
-	var res lastfm.PersonalTrackTags
-	p := lastfm.PersonalTagsExtendedParams{PersonalTagsParams: params, Type: lastfm.TagTypeTrack}
+// TaggedTracks returns the tracks tagged by a user with the given tag.
+func (u User) TaggedTracks(params lastfm.UserTagsParams) (*lastfm.UserTrackTags, error) {
+	var res lastfm.UserTrackTags
+	p := personalTagsExtendedParams{UserTagsParams: params, Type: lastfm.TagTypeTrack}
 	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, p)
 }
 

@@ -88,20 +88,14 @@ type LovedTracks struct {
 }
 
 // https://www.last.fm/api/show/user.getPersonalTags
-type PersonalTagsParams struct {
+type UserTagsParams struct {
 	User  string `url:"user"`
 	Tag   string `url:"tag"`
 	Limit uint   `url:"limit,omitempty"`
 	Page  uint   `url:"page,omitempty"`
 }
 
-// https://www.last.fm/api/show/user.getPersonalTags
-type PersonalTagsExtendedParams struct {
-	PersonalTagsParams
-	Type TagType `url:"taggingtype"`
-}
-
-type PersonalAlbumTags struct {
+type UserAlbumTags struct {
 	User       string `xml:"user,attr"`
 	Tag        string `xml:"tag,attr"`
 	Page       int    `xml:"page,attr"`
@@ -121,7 +115,7 @@ type PersonalAlbumTags struct {
 	} `xml:"albums>album"`
 }
 
-type PersonalArtistTags struct {
+type UserArtistTags struct {
 	User       string `xml:"user,attr"`
 	Tag        string `xml:"tag,attr"`
 	Page       int    `xml:"page,attr"`
@@ -137,7 +131,7 @@ type PersonalArtistTags struct {
 	} `xml:"artists>artist"`
 }
 
-type PersonalTrackTags struct {
+type UserTrackTags struct {
 	User       string `xml:"user,attr"`
 	Tag        string `xml:"tag,attr"`
 	Page       int    `xml:"page,attr"`

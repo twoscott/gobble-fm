@@ -28,8 +28,8 @@ type AlbumInfoMBIDParams struct {
 type AlbumUserInfoParams struct {
 	Artist      string `url:"artist"`
 	Album       string `url:"album"`
+	User        string `url:"username"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
-	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }
@@ -37,8 +37,8 @@ type AlbumUserInfoParams struct {
 // https://www.last.fm/api/show/album.getInfo
 type AlbumUserInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
+	User        string `url:"username"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
-	User        string `url:"username,omitempty"`
 	// The language to return the biography in, as an ISO 639 alpha-2 code.
 	Language string `url:"lang,omitempty"`
 }

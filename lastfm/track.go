@@ -56,15 +56,15 @@ type TrackInfoMBIDParams struct {
 type TrackUserInfoParams struct {
 	Artist      string `url:"artist"`
 	Track       string `url:"track"`
+	User        string `url:"username"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
-	User        string `url:"username,omitempty"`
 }
 
 // https://www.last.fm/api/show/track.getInfo
 type TrackUserInfoMBIDParams struct {
 	MBID        string `url:"mbid"`
+	User        string `url:"username"`
 	AutoCorrect *bool  `url:"autocorrect,int,omitempty"`
-	User        string `url:"username,omitempty"`
 }
 
 // https://www.last.fm/api/show/track.getInfo#attributes
