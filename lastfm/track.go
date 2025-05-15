@@ -324,18 +324,17 @@ func (s ScrobbleIgnored) Message() string {
 type ScrobbleResult struct {
 	Accepted IntBool  `xml:"accepted,attr"`
 	Ignored  IntBool  `xml:"ignored,attr"`
-	Scrobble Scrobble `xml:"scrobble"`
+	Scrobble scrobble `xml:"scrobble"`
 }
 
 // https://www.last.fm/api/show/track.scrobble#attributes
 type ScrobbleMultiResult struct {
 	Accepted  int        `xml:"accepted,attr"`
 	Ignored   int        `xml:"ignored,attr"`
-	Scrobbles []Scrobble `xml:"scrobble"`
+	Scrobbles []scrobble `xml:"scrobble"`
 }
 
-// https://www.last.fm/api/show/track.scrobble#attributes
-type Scrobble struct {
+type scrobble struct {
 	Track struct {
 		Title     string  `xml:",chardata"`
 		Corrected IntBool `xml:"corrected,attr"`

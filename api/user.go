@@ -63,10 +63,28 @@ func (u User) TaggedTracks(params lastfm.UserTagsParams) (*lastfm.UserTrackTags,
 	return &res, u.api.Get(&res, UserGetPersonalTagsMethod, p)
 }
 
+// RecentTrack returns the most recent track of a user. This is a convenience
+// method that calls RecentTracks with limit=1.
+func (u User) RecentTrack(user string) (*lastfm.RecentTrack, error) {
+	var res lastfm.RecentTrack
+	p := lastfm.RecentTracksParams{User: user, Limit: 1}
+	return &res, u.api.Get(&res, UserGetRecentTracksMethod, p)
+}
+
 // RecentTracks returns the recent tracks of a user.
 func (u User) RecentTracks(params lastfm.RecentTracksParams) (*lastfm.RecentTracks, error) {
 	var res lastfm.RecentTracks
 	return &res, u.api.Get(&res, UserGetRecentTracksMethod, params)
+}
+
+// RecentTrackExtended returns the most recent track of a user with extended
+// information. This is a convenience method that calls RecentTracksExtended
+// with limit=1.
+func (u User) RecentTrackExtended(user string) (*lastfm.RecentTrackExtended, error) {
+	var res lastfm.RecentTrackExtended
+	p := lastfm.RecentTracksParams{User: user, Limit: 1}
+	exp := recentTracksExtendedParams{RecentTracksParams: p, Extended: true}
+	return &res, u.api.Get(&res, UserGetRecentTracksMethod, exp)
 }
 
 // RecentTracksExtended returns the recent tracks of a user with extended
@@ -75,8 +93,8 @@ func (u User) RecentTracksExtended(
 	params lastfm.RecentTracksParams) (*lastfm.RecentTracksExtended, error) {
 
 	var res lastfm.RecentTracksExtended
-	p := recentTracksExtendedParams{RecentTracksParams: params, Extended: true}
-	return &res, u.api.Get(&res, UserGetRecentTracksMethod, p)
+	exp := recentTracksExtendedParams{RecentTracksParams: params, Extended: true}
+	return &res, u.api.Get(&res, UserGetRecentTracksMethod, exp)
 }
 
 // TopAlbums returns the top albums of a user.

@@ -1,6 +1,7 @@
 package lastfm
 
 import (
+	"encoding/xml"
 	"time"
 )
 
@@ -166,58 +167,129 @@ type RecentTracksParams struct {
 	Page  uint      `url:"page,omitempty"`
 }
 
-type RecentTracks struct {
+type RecentTrack struct {
 	User       string `xml:"user,attr"`
 	Page       int    `xml:"page,attr"`
 	PerPage    int    `xml:"perPage,attr"`
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
-	Tracks     []struct {
-		Title      string  `xml:"name"`
-		URL        string  `xml:"url"`
-		MBID       string  `xml:"mbid"`
-		NowPlaying bool    `xml:"nowplaying,attr"`
-		Streamable IntBool `xml:"streamable"`
-		Artist     struct {
-			Name string `xml:",chardata"`
-			MBID string `xml:"mbid,attr"`
-		} `xml:"artist"`
-		Album struct {
-			Title string `xml:",chardata"`
-			MBID  string `xml:"mbid,attr"`
-		} `xml:"album"`
-		Image       Image    `xml:"image"`
-		ScrobbledAt DateTime `xml:"date"`
-	} `xml:"track"`
+	Track      *track `xml:"track"`
+}
+
+// UnmarshalXML implements the xml.Unmarshaler interface for RecentTrack.
+// If user is currently scrobbling a track, user.recentTracks typically returns
+// limit + 1 tracks, so this corrects for that.
+func (t *RecentTrack) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	r := &RecentTracks{}
+	if err := d.DecodeElement(r, &start); err != nil {
+		return err
+	}
+
+	*t = RecentTrack{
+		User:       r.User,
+		Page:       r.Page,
+		PerPage:    r.PerPage,
+		TotalPages: r.TotalPages,
+		Total:      r.Total,
+	}
+
+	if len(r.Tracks) > 0 {
+		t.Track = &r.Tracks[0]
+	}
+
+	return nil
+}
+
+type RecentTracks struct {
+	User       string  `xml:"user,attr"`
+	Page       int     `xml:"page,attr"`
+	PerPage    int     `xml:"perPage,attr"`
+	TotalPages int     `xml:"totalPages,attr"`
+	Total      int     `xml:"total,attr"`
+	Tracks     []track `xml:"track"`
+}
+
+type track struct {
+	Title      string  `xml:"name"`
+	URL        string  `xml:"url"`
+	MBID       string  `xml:"mbid"`
+	NowPlaying bool    `xml:"nowplaying,attr"`
+	Streamable IntBool `xml:"streamable"`
+	Artist     struct {
+		Name string `xml:",chardata"`
+		MBID string `xml:"mbid,attr"`
+	} `xml:"artist"`
+	Album struct {
+		Title string `xml:",chardata"`
+		MBID  string `xml:"mbid,attr"`
+	} `xml:"album"`
+	Image       Image    `xml:"image"`
+	ScrobbledAt DateTime `xml:"date"`
+}
+
+// RecentTrackExtended is used when extended=1 in the API call.
+type RecentTrackExtended struct {
+	User       string         `xml:"user,attr"`
+	Page       int            `xml:"page,attr"`
+	PerPage    int            `xml:"perPage,attr"`
+	TotalPages int            `xml:"totalPages,attr"`
+	Total      int            `xml:"total,attr"`
+	Track      *trackExtended `xml:"track"`
+}
+
+// UnmarshalXML implements the xml.Unmarshaler interface for RecentTrack.
+// If user is currently scrobbling a track, user.recentTracks typically returns
+// limit + 1 tracks, so this corrects for that.
+func (t *RecentTrackExtended) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	r := &RecentTracksExtended{}
+	if err := d.DecodeElement(r, &start); err != nil {
+		return err
+	}
+
+	*t = RecentTrackExtended{
+		User:       r.User,
+		Page:       r.Page,
+		PerPage:    r.PerPage,
+		TotalPages: r.TotalPages,
+		Total:      r.Total,
+	}
+
+	if len(r.Tracks) > 0 {
+		t.Track = &r.Tracks[0]
+	}
+
+	return nil
 }
 
 // RecentTracksExtended is used when extended=1 in the API call.
 type RecentTracksExtended struct {
-	User       string `xml:"user,attr"`
-	Page       int    `xml:"page,attr"`
-	PerPage    int    `xml:"perPage,attr"`
-	TotalPages int    `xml:"totalPages,attr"`
-	Total      int    `xml:"total,attr"`
-	Tracks     []struct {
-		Title      string  `xml:"name"`
-		URL        string  `xml:"url"`
-		MBID       string  `xml:"mbid"`
-		NowPlaying bool    `xml:"nowplaying,attr"`
-		Loved      IntBool `xml:"loved"`
-		Streamable IntBool `xml:"streamable"`
-		Artist     struct {
-			Name  string `xml:"name"`
-			URL   string `xml:"url"`
-			MBID  string `xml:"mbid"`
-			Image Image  `xml:"image"`
-		} `xml:"artist"`
-		Album struct {
-			Title string `xml:",chardata"`
-			MBID  string `xml:"mbid,attr"`
-		} `xml:"album"`
-		Image       Image    `xml:"image"`
-		ScrobbledAt DateTime `xml:"date"`
-	} `xml:"track"`
+	User       string          `xml:"user,attr"`
+	Page       int             `xml:"page,attr"`
+	PerPage    int             `xml:"perPage,attr"`
+	TotalPages int             `xml:"totalPages,attr"`
+	Total      int             `xml:"total,attr"`
+	Tracks     []trackExtended `xml:"track"`
+}
+
+type trackExtended struct {
+	Title      string  `xml:"name"`
+	URL        string  `xml:"url"`
+	MBID       string  `xml:"mbid"`
+	NowPlaying bool    `xml:"nowplaying,attr"`
+	Loved      IntBool `xml:"loved"`
+	Streamable IntBool `xml:"streamable"`
+	Artist     struct {
+		Name  string `xml:"name"`
+		URL   string `xml:"url"`
+		MBID  string `xml:"mbid"`
+		Image Image  `xml:"image"`
+	} `xml:"artist"`
+	Album struct {
+		Title string `xml:",chardata"`
+		MBID  string `xml:"mbid,attr"`
+	} `xml:"album"`
+	Image       Image    `xml:"image"`
+	ScrobbledAt DateTime `xml:"date"`
 }
 
 // https://www.last.fm/api/show/user.getTopAlbums
