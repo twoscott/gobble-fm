@@ -61,26 +61,6 @@ func BuildAPIURL(params url.Values) string {
 	return Endpoint + "?" + params.Encode()
 }
 
-// ParseParameters takes a parameter of any type and converts it into a
-// url.Values type. This is useful for converting structs into query parameters
-// for API requests. If the parameter is nil, an empty url.Values is returned.
-// If the parameter cannot be converted into a url.Values, an error is returned.
-func ParseParameters(params any) (url.Values, error) {
-	var p url.Values
-	var err error
-
-	if params == nil {
-		p = url.Values{}
-	} else {
-		p, err = query.Values(params)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	return p, nil
-}
-
 // Signature generates a Last.fm API signature for the given parameters and
 // secret. The signature is created by concatenating the sorted parameter keys
 // and their values, followed by the secret. The resulting string is then
@@ -242,10 +222,10 @@ func NewWithTimeout(apiKey, secret string, timeout int) *API {
 	}
 }
 
-// NewAPIOnly returns a new instance of API with the given API key but without
+// NewKeyOnly returns a new instance of API with the given API key but without
 // a Last.fm API secret. This is useful if you don't plan to use the API secret
 // to sign requests to the API such as auth methods.
-func NewAPIOnly(apiKey string) *API {
+func NewKeyOnly(apiKey string) *API {
 	t := time.Duration(DefaultTimeout) * time.Second
 
 	return &API{
@@ -293,15 +273,20 @@ func AuthURL(params AuthURLParams) string {
 	return lastfm.AuthURL + "?" + p.Encode()
 }
 
-// AuthURL returns the authentication URL for the Last.fm API.
+// AuthURL returns the authorization URL for the Last.fm API. This method should
+// be used for web authentication if you set a callback URL when creating your
+// API account. Otherwise, use AuthCallbackURL and provide a custom callback
+// URL.
+//
+// https://www.last.fm/api/webauth
 func (a API) AuthURL() string {
 	return a.AuthCallbackURL("")
 }
 
 // AuthCallbackURL returns the authorization URL for the Last.fm API with a
-// callback URL. This URL can be used to send users to Last.fm for
-// authentication. The user will be redirected to the callback URL after and
-// an authorized token parameter will be appended to the URL.
+// callback URL. This URL can be used for web authentication to send users to
+// Last.fm for authentication. The user will be redirected to the callback URL
+// after and an authorized token query parameter will be appended to the URL.
 //
 // https://www.last.fm/api/webauth
 func (a API) AuthCallbackURL(callbackURL string) string {
@@ -405,7 +390,7 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 		return err
 	}
 
-	p, err := ParseParameters(params)
+	p, err := query.Values(params)
 	if err != nil {
 		return err
 	}
@@ -458,7 +443,7 @@ func (a API) RequestSigned(dest any, httpMethod string, method APIMethod, params
 		return err
 	}
 
-	p, err := ParseParameters(params)
+	p, err := query.Values(params)
 	if err != nil {
 		return err
 	}
@@ -621,7 +606,7 @@ func NewClientWithTimeout(apiKey, secret string, timeout int) *Client {
 // without a Last.fm API secret. This is useful if you don't plan to use the API
 // secret to sign requests to the API such as auth methods.
 func NewClientKeyOnly(apiKey string) *Client {
-	return newClient(NewAPIOnly(apiKey))
+	return newClient(NewKeyOnly(apiKey))
 }
 
 func newClient(a *API) *Client {

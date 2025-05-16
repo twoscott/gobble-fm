@@ -27,6 +27,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/google/go-querystring/query"
 	"github.com/twoscott/gobble-fm/api"
 )
 
@@ -129,7 +130,7 @@ func (s Session) Request(dest any, httpMethod string, method api.APIMethod, para
 		return err
 	}
 
-	p, err := api.ParseParameters(params)
+	p, err := query.Values(params)
 	if err != nil {
 		return err
 	}

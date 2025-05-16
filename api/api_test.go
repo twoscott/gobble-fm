@@ -203,6 +203,16 @@ func TestAPI_Get(t *testing.T) {
 			wantError:      io.EOF,
 			wantTries:      1,
 		},
+		{
+			name:           "nil params",
+			method:         UserGetInfoMethod,
+			params:         nil,
+			mockStatusCode: http.StatusOK,
+			mockBody:       `<lfm status="ok"><user><name>testuser</name></user></lfm>`,
+			wantResult:     "testuser",
+			wantURL:        "https://ws.audioscrobbler.com/2.0/?api_key=testapikey&method=user.getInfo",
+			wantTries:      1,
+		},
 	}
 
 	for _, c := range cases {
