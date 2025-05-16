@@ -1,7 +1,8 @@
 # Gobble.fm
 
-[![Go Reference](https://img.shields.io/badge/reference-007d9c?style=flat-round&color=00ADD8&logo=go&logoColor=ffffff)](https://pkg.go.dev/github.com/twoscott/gobble-fm)
-[![Go Version 1.23+](https://img.shields.io/badge/go-1.23+-00ADD8?style=flat-round)](https://golang.org/dl/)
+[![Go Reference](https://img.shields.io/badge/reference-009bc2?style=flat-round&logo=go&logoColor=ffffff)](https://pkg.go.dev/github.com/twoscott/gobble-fm)
+[![Go Version 1.23+](https://img.shields.io/badge/go-1.23+-009bc2?style=flat-round)](https://golang.org/dl/)
+[![Tag](https://img.shields.io/github/v/tag/twoscott/gobble-fm?style=flat-round&color=00b1b1)](https://github.com/twoscott/gobble-fm/tags)
 [![Go Tests](https://img.shields.io/github/actions/workflow/status/twoscott/gobble-fm/test.yml?branch=master&style=flat-round&label=tests)](https://github.com/twoscott/gobble-fm/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/twoscott/gobble-fm?style=flat-round)](https://goreportcard.com/report/github.com/twoscott/gobble-fm)
 [![Last Commit](https://img.shields.io/github/last-commit/twoscott/gobble-fm?logo=github&logoColor=ffffff&style=flat-round)](https://github.com/twoscott/gobble-fm/commits/master)
