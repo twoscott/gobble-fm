@@ -173,7 +173,7 @@ type RecentTrack struct {
 	PerPage    int    `xml:"perPage,attr"`
 	TotalPages int    `xml:"totalPages,attr"`
 	Total      int    `xml:"total,attr"`
-	Track      *track `xml:"track"`
+	Track      *Track `xml:"track"`
 }
 
 // UnmarshalXML implements the xml.Unmarshaler interface for RecentTrack.
@@ -206,10 +206,10 @@ type RecentTracks struct {
 	PerPage    int     `xml:"perPage,attr"`
 	TotalPages int     `xml:"totalPages,attr"`
 	Total      int     `xml:"total,attr"`
-	Tracks     []track `xml:"track"`
+	Tracks     []Track `xml:"track"`
 }
 
-type track struct {
+type Track struct {
 	Title      string  `xml:"name"`
 	URL        string  `xml:"url"`
 	MBID       string  `xml:"mbid"`
@@ -234,7 +234,7 @@ type RecentTrackExtended struct {
 	PerPage    int            `xml:"perPage,attr"`
 	TotalPages int            `xml:"totalPages,attr"`
 	Total      int            `xml:"total,attr"`
-	Track      *trackExtended `xml:"track"`
+	Track      *TrackExtended `xml:"track"`
 }
 
 // UnmarshalXML implements the xml.Unmarshaler interface for RecentTrack.
@@ -268,10 +268,10 @@ type RecentTracksExtended struct {
 	PerPage    int             `xml:"perPage,attr"`
 	TotalPages int             `xml:"totalPages,attr"`
 	Total      int             `xml:"total,attr"`
-	Tracks     []trackExtended `xml:"track"`
+	Tracks     []TrackExtended `xml:"track"`
 }
 
-type trackExtended struct {
+type TrackExtended struct {
 	Title      string  `xml:"name"`
 	URL        string  `xml:"url"`
 	MBID       string  `xml:"mbid"`
