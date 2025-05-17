@@ -56,43 +56,6 @@ const (
 	DefaultTimeout        = 30
 )
 
-// BuildAPIURL constructs a Last.fm API URL with the specified parameters.
-func BuildAPIURL(params url.Values) string {
-	return Endpoint + "?" + params.Encode()
-}
-
-// Signature generates a Last.fm API signature for the given parameters and
-// secret. The signature is created by concatenating the sorted parameter keys
-// and their values, followed by the secret. The resulting string is then
-// hashed using MD5 to produce a hexadecimal representation of the hash.
-//
-// Parameters:
-//   - params: The parameters to include in the signature.
-//   - secret: The secret key to use for signing the request.
-//
-// Returns:
-//   - A hexadecimal string representing the signature.
-//
-// https://www.last.fm/api/authspec
-func Signature(params url.Values, secret string) string {
-	keys := slices.Sorted(maps.Keys(params))
-
-	var sig string
-	for _, k := range keys {
-		// exclude format and callback params from signature
-		if k == "format" || k == "callback" {
-			continue
-		}
-
-		sig += k + params.Get(k)
-	}
-
-	sig += secret
-	hash := md5.Sum([]byte(sig))
-
-	return hex.EncodeToString(hash[:])
-}
-
 // RequestLevel specifies the level of authorisation and authentication required
 // for an API request.
 type RequestLevel int
@@ -103,83 +66,6 @@ const (
 	RequestLevelSecret
 	RequestLevelSession
 )
-
-// APIMethod represents a Last.fm API method parameter.
-type APIMethod string
-
-// https://www.last.fm/api
-const (
-	AlbumAddTagsMethod    APIMethod = "album.addTags"
-	AlbumGetInfoMethod    APIMethod = "album.getInfo"
-	AlbumGetTagsMethod    APIMethod = "album.getTags"
-	AlbumGetTopTagsMethod APIMethod = "album.getTopTags"
-	AlbumRemoveTagMethod  APIMethod = "album.removeTag"
-	AlbumSearchMethod     APIMethod = "album.search"
-
-	ArtistAddTagsMethod       APIMethod = "artist.addTags"
-	ArtistGetCorrectionMethod APIMethod = "artist.getCorrection"
-	ArtistGetInfoMethod       APIMethod = "artist.getInfo"
-	ArtistGetSimilarMethod    APIMethod = "artist.getSimilar"
-	ArtistGetTagsMethod       APIMethod = "artist.getTags"
-	ArtistGetTopAlbumsMethod  APIMethod = "artist.getTopAlbums"
-	ArtistGetTopTagsMethod    APIMethod = "artist.getTopTags"
-	ArtistGetTopTracksMethod  APIMethod = "artist.getTopTracks"
-	ArtistRemoveTagMethod     APIMethod = "artist.removeTag"
-	ArtistSearchMethod        APIMethod = "artist.search"
-
-	AuthGetMobileSessionMethod APIMethod = "auth.getMobileSession"
-	AuthGetSessionMethod       APIMethod = "auth.getSession"
-	AuthGetTokenMethod         APIMethod = "auth.getToken"
-
-	ChartGetTopArtistsMethod APIMethod = "chart.getTopArtists"
-	ChartGetTopTagsMethod    APIMethod = "chart.getTopTags"
-	ChartGetTopTracksMethod  APIMethod = "chart.getTopTracks"
-
-	GeoGetTopArtistsMethod APIMethod = "geo.getTopArtists"
-	GeoGetTopTracksMethod  APIMethod = "geo.getTopTracks"
-
-	LibraryGetArtistsMethod APIMethod = "library.getArtists"
-
-	TagGetInfoMethod            APIMethod = "tag.getInfo"
-	TagGetSimilarMethod         APIMethod = "tag.getSimilar"
-	TagGetTopAlbumsMethod       APIMethod = "tag.getTopAlbums"
-	TagGetTopArtistsMethod      APIMethod = "tag.getTopArtists"
-	TagGetTopTagsMethod         APIMethod = "tag.getTopTags"
-	TagGetTopTracksMethod       APIMethod = "tag.getTopTracks"
-	TagGetWeeklyChartListMethod APIMethod = "tag.getWeeklyChartList"
-
-	TrackAddTagsMethod          APIMethod = "track.addTags"
-	TrackGetCorrectionMethod    APIMethod = "track.getCorrection"
-	TrackGetInfoMethod          APIMethod = "track.getInfo"
-	TrackGetSimilarMethod       APIMethod = "track.getSimilar"
-	TrackGetTagsMethod          APIMethod = "track.getTags"
-	TrackGetTopTagsMethod       APIMethod = "track.getTopTags"
-	TrackLoveMethod             APIMethod = "track.love"
-	TrackRemoveTagMethod        APIMethod = "track.removeTag"
-	TrackScrobbleMethod         APIMethod = "track.scrobble"
-	TrackSearchMethod           APIMethod = "track.search"
-	TrackUnloveMethod           APIMethod = "track.unlove"
-	TrackUpdateNowPlayingMethod APIMethod = "track.updateNowPlaying"
-
-	UserGetFriendsMethod           APIMethod = "user.getFriends"
-	UserGetInfoMethod              APIMethod = "user.getInfo"
-	UserGetLovedTracksMethod       APIMethod = "user.getLovedTracks"
-	UserGetPersonalTagsMethod      APIMethod = "user.getPersonalTags"
-	UserGetRecentTracksMethod      APIMethod = "user.getRecentTracks"
-	UserGetTopAlbumsMethod         APIMethod = "user.getTopAlbums"
-	UserGetTopArtistsMethod        APIMethod = "user.getTopArtists"
-	UserGetTopTagsMethod           APIMethod = "user.getTopTags"
-	UserGetTopTracksMethod         APIMethod = "user.getTopTracks"
-	UserGetWeeklyAlbumChartMethod  APIMethod = "user.getWeeklyAlbumChart"
-	UserGetWeeklyArtistChartMethod APIMethod = "user.getWeeklyArtistChart"
-	UserGetWeeklyChartListMethod   APIMethod = "user.getWeeklyChartList"
-	UserGetWeeklyTrackChartMethod  APIMethod = "user.getWeeklyTrackChart"
-)
-
-// String returns the string representation of the APIMethod.
-func (m APIMethod) String() string {
-	return string(m)
-}
 
 // HTTPClient is an interface that defines the Do method for making HTTP
 // requests. This allows for easier testing and mocking of HTTP requests.
@@ -244,33 +130,6 @@ func (a *API) SetUserAgent(userAgent string) {
 // SetRetries sets the number of retries for failed requests.
 func (a *API) SetRetries(retries uint) {
 	a.Retries = retries
-}
-
-// AuthURL returns the authentication URL for the Last.fm API with the specified
-// parameters. This URL can be used to send users to Last.fm for authentication.
-// The URL includes the API key and a callback URL if specified.
-//
-// Parameters:
-//   - params.APIKey: The Last.fm API key.
-//   - params.Callback: The URL to redirect the user to and provided the
-//     authenticated token to as a query parameter.
-//   - params.Token: The token for the user to authenticate.
-//
-// Returns:
-//   - The authentication URL as a string.
-func AuthURL(params AuthURLParams) string {
-	p := url.Values{}
-
-	p.Set("api_key", params.APIKey)
-
-	if params.Callback != "" {
-		p.Set("cb", params.Callback)
-	}
-	if params.Token != "" {
-		p.Set("token", params.Token)
-	}
-
-	return lastfm.AuthURL + "?" + p.Encode()
 }
 
 // AuthURL returns the authorization URL for the Last.fm API. This method should
@@ -573,53 +432,66 @@ func (a API) createRequest(method, url, body string) (*http.Request, error) {
 	return req, nil
 }
 
-// Client is the main struct that provides access to various API services.
-// It embeds the API struct and includes fields for accessing specific
-// service modules such as Album, Artist, User, etc.
-type Client struct {
-	*API
-	Album   *Album
-	Artist  *Artist
-	Auth    *Auth
-	Chart   *Chart
-	Geo     *Geo
-	Library *Library
-	Tag     *Tag
-	Track   *Track
-	User    *User
+// BuildAPIURL constructs a Last.fm API URL with the specified parameters.
+func BuildAPIURL(params url.Values) string {
+	return Endpoint + "?" + params.Encode()
 }
 
-// New returns a new instance of API Client with the given API key and secret.
-func NewClient(apiKey, secret string) *Client {
-	return newClient(New(apiKey, secret))
-}
+// AuthURL returns the authentication URL for the Last.fm API with the specified
+// parameters. This URL can be used to send users to Last.fm for authentication.
+// The URL includes the API key and a callback URL if specified.
+//
+// Parameters:
+//   - params.APIKey: The Last.fm API key.
+//   - params.Callback: The URL to redirect the user to and provided the
+//     authenticated token to as a query parameter.
+//   - params.Token: The token for the user to authenticate.
+//
+// Returns:
+//   - The authentication URL as a string.
+func AuthURL(params AuthURLParams) string {
+	p := url.Values{}
 
-// NewClientWithTimeout returns a new instance of Client with the given API key,
-// secret, and timeout settings. The timeout is specified in seconds and is used
-// to configure the HTTP client for making API requests. This allows for better
-// control over network timeouts when interacting with the API.
-func NewClientWithTimeout(apiKey, secret string, timeout int) *Client {
-	return newClient(NewWithTimeout(apiKey, secret, timeout))
-}
+	p.Set("api_key", params.APIKey)
 
-// NewClientKeyOnly returns a new instance of Client with the given API key but
-// without a Last.fm API secret. This is useful if you don't plan to use the API
-// secret to sign requests to the API such as auth methods.
-func NewClientKeyOnly(apiKey string) *Client {
-	return newClient(NewKeyOnly(apiKey))
-}
-
-func newClient(a *API) *Client {
-	return &Client{
-		API:     a,
-		Album:   NewAlbum(a),
-		Artist:  NewArtist(a),
-		Auth:    NewAuth(a),
-		Chart:   NewChart(a),
-		Geo:     NewGeo(a),
-		Library: NewLibrary(a),
-		Tag:     NewTag(a),
-		Track:   NewTrack(a),
-		User:    NewUser(a),
+	if params.Callback != "" {
+		p.Set("cb", params.Callback)
 	}
+	if params.Token != "" {
+		p.Set("token", params.Token)
+	}
+
+	return lastfm.AuthURL + "?" + p.Encode()
+}
+
+// Signature generates a Last.fm API signature for the given parameters and
+// secret. The signature is created by concatenating the sorted parameter keys
+// and their values, followed by the secret. The resulting string is then
+// hashed using MD5 to produce a hexadecimal representation of the hash.
+//
+// Parameters:
+//   - params: The parameters to include in the signature.
+//   - secret: The secret key to use for signing the request.
+//
+// Returns:
+//   - A hexadecimal string representing the signature.
+//
+// https://www.last.fm/api/authspec
+func Signature(params url.Values, secret string) string {
+	keys := slices.Sorted(maps.Keys(params))
+
+	var sig string
+	for _, k := range keys {
+		// exclude format and callback params from signature
+		if k == "format" || k == "callback" {
+			continue
+		}
+
+		sig += k + params.Get(k)
+	}
+
+	sig += secret
+	hash := md5.Sum([]byte(sig))
+
+	return hex.EncodeToString(hash[:])
 }

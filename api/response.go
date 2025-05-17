@@ -60,38 +60,53 @@ const (
 	SessionRequiredMessage = "Method requires user authentication (session key)"
 )
 
-// HTTPError represents an error that occurred during an HTTP request.
-type HTTPError struct {
-	StatusCode int
-	Message    string
+type LFMWrapper struct {
+	XMLName  xml.Name `xml:"lfm"`
+	Status   string   `xml:"status,attr"`
+	InnerXML []byte   `xml:",innerxml"`
 }
 
-// NewHTTPError creates a new HTTPError instance from an HTTP response.
-func NewHTTPError(res *http.Response) *HTTPError {
-	if res == nil {
-		return &HTTPError{
-			StatusCode: http.StatusInternalServerError,
-			Message:    "nil response",
-		}
-	}
-
-	return &HTTPError{
-		StatusCode: res.StatusCode,
-		Message:    http.StatusText(res.StatusCode),
-	}
+// Empty checks if the InnerXML is empty.
+func (lf *LFMWrapper) Empty() bool {
+	return len(lf.InnerXML) == 0
 }
 
-// Error implements the error interface.
-func (e *HTTPError) Error() string {
-	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Message)
+// StatusOK checks if the status is "ok".
+func (lf *LFMWrapper) StatusOK() bool {
+	return lf.Status == "ok"
 }
 
-// Is checks if the error matches the target error.
-func (e *HTTPError) Is(target error) bool {
-	if t, ok := target.(*HTTPError); ok {
-		return e.StatusCode == t.StatusCode
+// StatusFailed checks if the status is "failed".
+func (lf *LFMWrapper) StatusFailed() bool {
+	return lf.Status == "failed"
+}
+
+// UnwrapError attempts to extract and return a LastFMError from the LFMWrapper
+// instance. If the status of the LFMWrapper indicates success, it returns nil
+// for both the error and LastFMError. Otherwise, it unmarshals the InnerXML
+// field into a LastFMError structure. If the unmarshaling succeeds and the
+// LastFMError contains an error code, it returns the LastFMError. If no error
+// code is present or unmarshaling fails, it returns an appropriate error.
+func (lf *LFMWrapper) UnwrapError() (*LastFMError, error) {
+	if lf.StatusOK() {
+		return nil, nil
 	}
-	return false
+
+	var lferr LastFMError
+	if err := lf.UnmarshalInnerXML(&lferr); err != nil {
+		return nil, err
+	}
+	if lferr.HasErrorCode() {
+		return &lferr, nil
+	}
+
+	return nil, errors.New("no error code in response")
+}
+
+// UnmarshalInnerXML unmarshals the InnerXML field into the provided destination
+// variable.
+func (lf *LFMWrapper) UnmarshalInnerXML(dest any) error {
+	return xml.Unmarshal(lf.InnerXML, dest)
 }
 
 // LastFMError represents an error returned by Last.fm.
@@ -158,51 +173,36 @@ func (e LastFMError) ShouldRetry() bool {
 		e.Code == ErrRateLimitExceeded
 }
 
-type LFMWrapper struct {
-	XMLName  xml.Name `xml:"lfm"`
-	Status   string   `xml:"status,attr"`
-	InnerXML []byte   `xml:",innerxml"`
+// HTTPError represents an error that occurred during an HTTP request.
+type HTTPError struct {
+	StatusCode int
+	Message    string
 }
 
-// Empty checks if the InnerXML is empty.
-func (lf *LFMWrapper) Empty() bool {
-	return len(lf.InnerXML) == 0
-}
-
-// StatusOK checks if the status is "ok".
-func (lf *LFMWrapper) StatusOK() bool {
-	return lf.Status == "ok"
-}
-
-// StatusFailed checks if the status is "failed".
-func (lf *LFMWrapper) StatusFailed() bool {
-	return lf.Status == "failed"
-}
-
-// UnwrapError attempts to extract and return a LastFMError from the LFMWrapper
-// instance. If the status of the LFMWrapper indicates success, it returns nil
-// for both the error and LastFMError. Otherwise, it unmarshals the InnerXML
-// field into a LastFMError structure. If the unmarshaling succeeds and the
-// LastFMError contains an error code, it returns the LastFMError. If no error
-// code is present or unmarshaling fails, it returns an appropriate error.
-func (lf *LFMWrapper) UnwrapError() (*LastFMError, error) {
-	if lf.StatusOK() {
-		return nil, nil
+// NewHTTPError creates a new HTTPError instance from an HTTP response.
+func NewHTTPError(res *http.Response) *HTTPError {
+	if res == nil {
+		return &HTTPError{
+			StatusCode: http.StatusInternalServerError,
+			Message:    "nil response",
+		}
 	}
 
-	var lferr LastFMError
-	if err := lf.UnmarshalInnerXML(&lferr); err != nil {
-		return nil, err
+	return &HTTPError{
+		StatusCode: res.StatusCode,
+		Message:    http.StatusText(res.StatusCode),
 	}
-	if lferr.HasErrorCode() {
-		return &lferr, nil
-	}
-
-	return nil, errors.New("no error code in response")
 }
 
-// UnmarshalInnerXML unmarshals the InnerXML field into the provided destination
-// variable.
-func (lf *LFMWrapper) UnmarshalInnerXML(dest any) error {
-	return xml.Unmarshal(lf.InnerXML, dest)
+// Error implements the error interface.
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Message)
+}
+
+// Is checks if the error matches the target error.
+func (e *HTTPError) Is(target error) bool {
+	if t, ok := target.(*HTTPError); ok {
+		return e.StatusCode == t.StatusCode
+	}
+	return false
 }
