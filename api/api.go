@@ -138,7 +138,7 @@ func (a *API) SetRetries(retries uint) {
 // URL.
 //
 // https://www.last.fm/api/webauth
-func (a API) AuthURL() string {
+func (a *API) AuthURL() string {
 	return a.AuthCallbackURL("")
 }
 
@@ -148,7 +148,7 @@ func (a API) AuthURL() string {
 // after and an authorized token query parameter will be appended to the URL.
 //
 // https://www.last.fm/api/webauth
-func (a API) AuthCallbackURL(callbackURL string) string {
+func (a *API) AuthCallbackURL(callbackURL string) string {
 	return AuthURL(AuthURLParams{APIKey: a.APIKey, Callback: callbackURL})
 }
 
@@ -157,7 +157,7 @@ func (a API) AuthCallbackURL(callbackURL string) string {
 // the provided token will be authorized.
 //
 // https://www.last.fm/api/desktopauth
-func (a API) AuthTokenURL(token string) string {
+func (a *API) AuthTokenURL(token string) string {
 	return AuthURL(AuthURLParams{APIKey: a.APIKey, Token: token})
 }
 
@@ -165,7 +165,7 @@ func (a API) AuthTokenURL(token string) string {
 // secret. The signature is created by concatenating the sorted parameter keys
 // and their values, followed by the session secret. The resulting string is
 // then hashed using MD5 to produce a hexadecimal representation of the hash.
-func (a API) Signature(params url.Values) string {
+func (a *API) Signature(params url.Values) string {
 	return Signature(params, a.Secret)
 }
 
@@ -180,7 +180,7 @@ func (a API) Signature(params url.Values) string {
 //
 // Returns:
 //   - An error if the required authentication credentials are not present.
-func (a API) CheckCredentials(level RequestLevel) error {
+func (a *API) CheckCredentials(level RequestLevel) error {
 	switch level {
 	case RequestLevelSession, RequestLevelSecret:
 		if a.Secret == "" {
@@ -211,7 +211,7 @@ func (a API) CheckCredentials(level RequestLevel) error {
 //
 // Returns:
 //   - An error if the request fails or the response cannot be decoded.
-func (a API) Get(dest any, method APIMethod, params any) error {
+func (a *API) Get(dest any, method APIMethod, params any) error {
 	return a.Request(dest, http.MethodGet, method, params)
 }
 
@@ -225,7 +225,7 @@ func (a API) Get(dest any, method APIMethod, params any) error {
 //
 // Returns:
 //   - An error if the request fails or the response cannot be decoded.
-func (a API) Post(dest any, method APIMethod, params any) error {
+func (a *API) Post(dest any, method APIMethod, params any) error {
 	return a.Request(dest, http.MethodPost, method, params)
 }
 
@@ -243,7 +243,7 @@ func (a API) Post(dest any, method APIMethod, params any) error {
 // Returns:
 //   - An error if the request fails, the response cannot be unmarshaled,
 //     or any other issue occurs.
-func (a API) Request(dest any, httpMethod string, method APIMethod, params any) error {
+func (a *API) Request(dest any, httpMethod string, method APIMethod, params any) error {
 	err := a.CheckCredentials(RequestLevelAPIKey)
 	if err != nil {
 		return err
@@ -270,14 +270,14 @@ func (a API) Request(dest any, httpMethod string, method APIMethod, params any) 
 // GetSigned sends an HTTP GET request to the API with the specified method and
 // parameters, signed with the API secret. The response is unmarshaled into the
 // provided destination.
-func (a API) GetSigned(dest any, method APIMethod, params any) error {
+func (a *API) GetSigned(dest any, method APIMethod, params any) error {
 	return a.RequestSigned(dest, http.MethodGet, method, params)
 }
 
 // PostSigned sends an HTTP POST request to the API with the specified method
 // and parameters, signed with the API secret. The response is unmarshaled into
 // the provided destination.
-func (a API) PostSigned(dest any, method APIMethod, params any) error {
+func (a *API) PostSigned(dest any, method APIMethod, params any) error {
 	return a.RequestSigned(dest, http.MethodPost, method, params)
 }
 
@@ -296,7 +296,7 @@ func (a API) PostSigned(dest any, method APIMethod, params any) error {
 // Returns:
 //   - An error if the request fails, the response cannot be unmarshaled, or any
 //     other issue occurs.
-func (a API) RequestSigned(dest any, httpMethod string, method APIMethod, params any) error {
+func (a *API) RequestSigned(dest any, httpMethod string, method APIMethod, params any) error {
 	err := a.CheckCredentials(RequestLevelSecret)
 	if err != nil {
 		return err
@@ -323,17 +323,17 @@ func (a API) RequestSigned(dest any, httpMethod string, method APIMethod, params
 
 // GetURL sends an HTTP GET request to the specified URL and unmarshals the
 // response into the provided destination.
-func (a API) GetURL(dest any, url string) error {
+func (a *API) GetURL(dest any, url string) error {
 	return a.tryRequest(dest, http.MethodGet, url, "")
 }
 
 // PostBody sends an HTTP POST request to the specified URL with the given
 // request body and unmarshals the response into the provided destination.
-func (a API) PostBody(dest any, url, body string) error {
+func (a *API) PostBody(dest any, url, body string) error {
 	return a.tryRequest(dest, http.MethodPost, url, body)
 }
 
-func (a API) tryRequest(dest any, method, url, body string) error {
+func (a *API) tryRequest(dest any, method, url, body string) error {
 	var (
 		res   *http.Response
 		lfm   LFMWrapper
@@ -367,7 +367,7 @@ func (a API) tryRequest(dest any, method, url, body string) error {
 			lferr, _ = lfm.UnwrapError()
 		}
 
-		if res.StatusCode >= 500 || res.StatusCode == http.StatusTooManyRequests {
+		if res.StatusCode == http.StatusTooManyRequests || res.StatusCode >= 500 {
 			continue
 		}
 		if lferr != nil && lferr.ShouldRetry() {
@@ -380,7 +380,7 @@ func (a API) tryRequest(dest any, method, url, body string) error {
 	if lferr != nil {
 		return lferr.WrapResponse(res)
 	}
-	if res.StatusCode < http.StatusOK || res.StatusCode > http.StatusIMUsed {
+	if res.StatusCode < http.StatusOK || res.StatusCode >= 300 {
 		return NewHTTPError(res)
 	}
 	if errors.Is(err, io.EOF) {
@@ -400,11 +400,11 @@ func (a API) tryRequest(dest any, method, url, body string) error {
 	return nil
 }
 
-func (a API) createGetRequest(url string) (*http.Request, error) {
+func (a *API) createGetRequest(url string) (*http.Request, error) {
 	return a.createRequest(http.MethodGet, url, "")
 }
 
-func (a API) createPostRequest(url, body string) (*http.Request, error) {
+func (a *API) createPostRequest(url, body string) (*http.Request, error) {
 	req, err := a.createRequest(http.MethodPost, url, body)
 	if err != nil {
 		return nil, err
@@ -415,7 +415,7 @@ func (a API) createPostRequest(url, body string) (*http.Request, error) {
 	return req, nil
 }
 
-func (a API) createRequest(method, url, body string) (*http.Request, error) {
+func (a *API) createRequest(method, url, body string) (*http.Request, error) {
 	var r io.Reader
 	if body != "" {
 		r = strings.NewReader(body)

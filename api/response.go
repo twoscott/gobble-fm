@@ -156,18 +156,18 @@ func (e *LastFMError) WrapResponse(res *http.Response) *LastFMError {
 }
 
 // IsCode checks if the error code matches the given code.
-func (e LastFMError) IsCode(code ErrorCode) bool {
+func (e *LastFMError) IsCode(code ErrorCode) bool {
 	return e.Code == code
 }
 
 // HasErrorCode checks if the error code indicated an error (not 0).
-func (e LastFMError) HasErrorCode() bool {
+func (e *LastFMError) HasErrorCode() bool {
 	return e.Code != NoError
 }
 
 // ShouldRetry returns true if the error code indicates that the request can be
 // retried.
-func (e LastFMError) ShouldRetry() bool {
+func (e *LastFMError) ShouldRetry() bool {
 	return e.Code == ErrOperationFailed ||
 		e.Code == ErrServiceUnavailable ||
 		e.Code == ErrRateLimitExceeded

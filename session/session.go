@@ -33,10 +33,10 @@ import (
 
 type Session struct {
 	*api.API
-	// SessionKey is the session key for the Last.fm API session. This key is used to
-	// authenticate requests made to the API. Last.fm session keys have infinite
-	// lifetime, so you can store it and reuse it for future requests without
-	// needing to re-authenticate the user.
+	// SessionKey is the session key for the Last.fm API session. This key is
+	// used to authenticate requests made to the API. Last.fm session keys have
+	// infinite lifetime, so you can store it and reuse it for future requests
+	// without needing to re-authenticate the user.
 	SessionKey string
 }
 
@@ -62,18 +62,18 @@ func (s *Session) SetSessionKey(key string) {
 	s.SessionKey = key
 }
 
-// CheckCredentials verifies the authentication level required for an API request and
-// ensures the necessary credentials are present. It checks the presence of the
-// Last.fm API session key for requests requiring a session, the secret for
-// requests requiring a secret, and the API key for requests requiring an API
-// key. Returns an error if required credentials are missing.
+// CheckCredentials verifies the authentication level required for an API
+// request and ensures the necessary credentials are present. It checks the
+// presence of the Last.fm API session key for requests requiring a session,
+// the secret for requests requiring a secret, and the API key for requests
+// requiring an API key. Returns an error if required credentials are missing.
 //
 // Parameters:
 //   - level: The RequestLevel indicating the level of authorization required.
 //
 // Returns:
 //   - An error if the required authentication credentials are not present.
-func (s Session) CheckCredentials(level api.RequestLevel) error {
+func (s *Session) CheckCredentials(level api.RequestLevel) error {
 	switch level {
 	case api.RequestLevelSession:
 		if s.SessionKey == "" {
@@ -95,12 +95,13 @@ func (s Session) CheckCredentials(level api.RequestLevel) error {
 //
 // Returns:
 //   - An error if the request fails or the response cannot be decoded.
-func (s Session) Get(dest any, method api.APIMethod, params any) error {
+func (s *Session) Get(dest any, method api.APIMethod, params any) error {
 	return s.Request(dest, http.MethodGet, method, params)
 }
 
 // Post sends an authenticated HTTP POST request to the API with the specified
-// method and parameters. The response is unmarshaled into the provided destination.
+// method and parameters. The response is unmarshaled into the provided
+// destination.
 //
 // Parameters:
 //   - dest: A pointer to the variable where the response will be unmarshaled.
@@ -109,7 +110,7 @@ func (s Session) Get(dest any, method api.APIMethod, params any) error {
 //
 // Returns:
 //   - An error if the request fails or the response cannot be unmarshaled.
-func (s Session) Post(dest any, method api.APIMethod, params any) error {
+func (s *Session) Post(dest any, method api.APIMethod, params any) error {
 	return s.Request(dest, http.MethodPost, method, params)
 }
 
@@ -124,7 +125,7 @@ func (s Session) Post(dest any, method api.APIMethod, params any) error {
 //
 // Returns:
 //   - An error if the request fails or the response cannot be unmarshaled.
-func (s Session) Request(dest any, httpMethod string, method api.APIMethod, params any) error {
+func (s *Session) Request(dest any, httpMethod string, method api.APIMethod, params any) error {
 	err := s.CheckCredentials(api.RequestLevelSession)
 	if err != nil {
 		return err
