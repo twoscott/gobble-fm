@@ -1,20 +1,23 @@
-package api
+package client
 
-import "github.com/twoscott/gobble-fm/lastfm"
+import (
+	"github.com/twoscott/gobble-fm/v2/api"
+	"github.com/twoscott/gobble-fm/v2/lastfm"
+)
 
 type Chart struct {
-	api *API
+	api *api.API
 }
 
 // NewChart creates and returns a new Chart API route.
-func NewChart(api *API) *Chart {
+func NewChart(api *api.API) *Chart {
 	return &Chart{api: api}
 }
 
 // TopArtistsLimit returns the top artists of the chart.
 func (c Chart) TopArtistsLimit(params *lastfm.ChartTopArtistsParams) (*lastfm.ChartTopArtists, error) {
 	var res lastfm.ChartTopArtists
-	return &res, c.api.Get(&res, ChartGetTopArtistsMethod, params)
+	return &res, c.api.Get(&res, api.ChartGetTopArtistsMethod, params)
 }
 
 // TopArtists returns all the top artists of the chart. Same as
@@ -26,7 +29,7 @@ func (c Chart) TopArtists() (*lastfm.ChartTopArtists, error) {
 // TopTagsLimit returns the top tags of the chart.
 func (c Chart) TopTagsLimit(params *lastfm.ChartTopTagsParams) (*lastfm.ChartTopTags, error) {
 	var res lastfm.ChartTopTags
-	return &res, c.api.Get(&res, ChartGetTopTagsMethod, params)
+	return &res, c.api.Get(&res, api.ChartGetTopTagsMethod, params)
 }
 
 // TopTags returns the top tags of the chart. Same as TopTagsLimit(nil).
@@ -37,7 +40,7 @@ func (c Chart) TopTags() (*lastfm.ChartTopTags, error) {
 // TopTracksLimit returns the top tracks of the chart.
 func (c Chart) TopTracksLimit(params *lastfm.ChartTopTracksParams) (*lastfm.ChartTopTracks, error) {
 	var res lastfm.ChartTopTracks
-	return &res, c.api.Get(&res, ChartGetTopTracksMethod, params)
+	return &res, c.api.Get(&res, api.ChartGetTopTracksMethod, params)
 }
 
 // TopTracks returns all the top tracks of the chart. Same as
