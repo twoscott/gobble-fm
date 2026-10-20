@@ -18,29 +18,41 @@ import (
 // fetching and authenticating session tokens for users.
 type AuthAPI struct {
 	*API
-	// Secret is the Last.fm API secret used to sign requests.
-	Secret string
+	// secret is the Last.fm API secret used to sign requests. It is stored as a
+	// pointer because fmt can't call String on unexported fields, so a Secret
+	// value here would be printed in full. fmt prints nested pointers as
+	// addresses, so the secret isn't leaked when an AuthAPI, or anything
+	// embedding it, is printed or logged.
+	secret string
 }
 
 // New returns a new instance of AuthAPI with the given API key and secret.
-func New(apiKey, secret string) *AuthAPI {
+// Returns an error if the API key or secret is missing.
+func New(apiKey, secret string) (*AuthAPI, error) {
 	return NewWithTimeout(apiKey, secret, DefaultTimeout)
 }
 
 // NewWithTimeout returns a new instance of AuthAPI with the given API key,
-// secret, and timeout settings. The timeout is specified in seconds.
-func NewWithTimeout(apiKey, secret string, timeout int) *AuthAPI {
+// secret, and timeout settings. The timeout is specified in seconds. Returns an
+// error if the API key or secret is missing.
+func NewWithTimeout(apiKey, secret string, timeout int) (*AuthAPI, error) {
 	t := time.Duration(timeout) * time.Second
 
-	return &AuthAPI{
+	a := &AuthAPI{
 		API: &API{
-			APIKey:    apiKey,
+			apiKey:    apiKey,
 			UserAgent: DefaultUserAgent,
 			Retries:   DefaultRetries,
 			Client:    &http.Client{Timeout: t},
 		},
-		Secret: secret,
+		secret: secret,
 	}
+
+	if err := a.CheckCredentials(RequestLevelSecret); err != nil {
+		return nil, err
+	}
+
+	return a, nil
 }
 
 // GetSigned sends an HTTP GET request to the API with the specified method and
@@ -83,7 +95,7 @@ func (a *AuthAPI) RequestSigned(dest any, httpMethod string, method APIMethod, p
 		return err
 	}
 
-	p.Set("api_key", a.APIKey)
+	p.Set("api_key", a.apiKey)
 	p.Set("method", method.String())
 	p.Set("api_sig", a.Signature(p))
 
@@ -135,7 +147,7 @@ func AuthURL(params AuthURLParams) string {
 // and their values, followed by the session secret. The resulting string is
 // then hashed using MD5 to produce a hexadecimal representation of the hash.
 func (a *AuthAPI) Signature(params url.Values) string {
-	return Signature(params, a.Secret)
+	return Signature(params, a.secret)
 }
 
 // Signature generates a Last.fm API signature for the given parameters and
@@ -184,7 +196,7 @@ func Signature(params url.Values, secret string) string {
 func (a *AuthAPI) CheckCredentials(level RequestLevel) error {
 	switch level {
 	case RequestLevelSession, RequestLevelSecret:
-		if a.Secret == "" {
+		if a.secret == "" {
 			return NewLastFMError(ErrSecretRequired, SecretRequiredMessage)
 		}
 		fallthrough

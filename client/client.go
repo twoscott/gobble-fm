@@ -22,19 +22,25 @@ type Client struct {
 }
 
 // New returns a new instance of Client with the given API key and secret.
-func New(apiKey, secret string) *Client {
+// Returns an error if the API key or secret is missing.
+func New(apiKey, secret string) (*Client, error) {
 	return newClient(api.New(apiKey, secret))
 }
 
 // NewWithTimeout returns a new instance of Client with the given API key,
 // secret, and timeout settings. The timeout is specified in seconds and is used
 // to configure the HTTP client for making API requests. This allows for better
-// control over network timeouts when interacting with the API.
-func NewWithTimeout(apiKey, secret string, timeout int) *Client {
+// control over network timeouts when interacting with the API. Returns an
+// error if the API key or secret is missing.
+func NewWithTimeout(apiKey, secret string, timeout int) (*Client, error) {
 	return newClient(api.NewWithTimeout(apiKey, secret, timeout))
 }
 
-func newClient(a *api.AuthAPI) *Client {
+func newClient(a *api.AuthAPI, err error) (*Client, error) {
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
 		AuthAPI: a,
 		Album:   NewAlbum(a.API),
@@ -46,16 +52,18 @@ func newClient(a *api.AuthAPI) *Client {
 		Tag:     NewTag(a.API),
 		Track:   NewTrack(a.API),
 		User:    NewUserAPI(a.API),
-	}
+	}, nil
 }
 
-// NewSession creates a new SessionClient for the provided Last.fm session based on Client.
-func (c *Client) NewSession(s lastfm.Session) *SessionClient {
+// NewSession creates a new SessionClient for the provided Last.fm session based
+// on Client. Returns an error if the session key is missing.
+func (c *Client) NewSession(s lastfm.Session) (*SessionClient, error) {
 	return newSession(api.NewAPISession(c.AuthAPI, s))
 }
 
-// NewSession creates a new SessionClient for the provided Last.fm session key based on Client.
-func (c *Client) NewSessionFromKey(sessionKey string) *SessionClient {
+// NewSessionFromKey creates a new SessionClient for the provided Last.fm
+// session key based on Client. Returns an error if the session key is missing.
+func (c *Client) NewSessionFromKey(sessionKey string) (*SessionClient, error) {
 	return newSession(api.NewAPISessionFromKey(c.AuthAPI, sessionKey))
 }
 
@@ -80,11 +88,17 @@ type KeyClient struct {
 // If you want to use the API secret to sign requests, you should use New or
 // NewWithTimeout instead, which will create a Client that gives you access to
 // Auth API methods.
-func NewKeyOnly(apiKey string) *KeyClient {
+//
+// Returns an error if the API key is missing.
+func NewKeyOnly(apiKey string) (*KeyClient, error) {
 	return newKeyOnly(api.NewKeyOnly(apiKey))
 }
 
-func newKeyOnly(a *api.API) *KeyClient {
+func newKeyOnly(a *api.API, err error) (*KeyClient, error) {
+	if err != nil {
+		return nil, err
+	}
+
 	return &KeyClient{
 		API:     a,
 		Album:   NewAlbum(a),
@@ -95,7 +109,7 @@ func newKeyOnly(a *api.API) *KeyClient {
 		Tag:     NewTag(a),
 		Track:   NewTrack(a),
 		User:    NewUserAPI(a),
-	}
+	}, nil
 }
 
 // SessionClient is a struct that serves as a central point for making
@@ -114,16 +128,22 @@ type SessionClient struct {
 }
 
 // NewSession returns a new session client from a user's session details.
-func NewSession(apiKey, secret string, session lastfm.Session) *SessionClient {
+// Returns an error if the API key, secret, or session key is missing.
+func NewSession(apiKey, secret string, session lastfm.Session) (*SessionClient, error) {
 	return newSession(api.NewSession(apiKey, secret, session))
 }
 
 // NewSessionFromKey returns a new session client from a user's session key.
-func NewSessionFromKey(apiKey, secret, sessionKey string) *SessionClient {
+// Returns an error if the API key, secret, or session key is missing.
+func NewSessionFromKey(apiKey, secret, sessionKey string) (*SessionClient, error) {
 	return newSession(api.NewSessionFromKey(apiKey, secret, sessionKey))
 }
 
-func newSession(s *api.Session) *SessionClient {
+func newSession(s *api.Session, err error) (*SessionClient, error) {
+	if err != nil {
+		return nil, err
+	}
+
 	return &SessionClient{
 		Session: s,
 		Album:   NewAlbumSession(s),
@@ -134,7 +154,7 @@ func newSession(s *api.Session) *SessionClient {
 		Tag:     NewTag(s.API),
 		Track:   NewTrackSession(s),
 		User:    NewUserSession(s),
-	}
+	}, nil
 }
 
 // TokenLogin authenticates a user using an authorized token obtained from the
@@ -148,7 +168,7 @@ func (c *Client) TokenLogin(token string) (*SessionClient, error) {
 		return nil, err
 	}
 
-	return c.NewSession(*s), nil
+	return c.NewSession(*s)
 }
 
 // Login authenticates a user using their username and password credentials.
@@ -160,5 +180,5 @@ func (c *Client) Login(username, password string) (*SessionClient, error) {
 		return nil, err
 	}
 
-	return c.NewSession(*s), nil
+	return c.NewSession(*s)
 }

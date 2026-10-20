@@ -75,8 +75,8 @@ type HTTPClient interface {
 // initialized with an API key and can be configured with a user agent and
 // timeout settings. It also supports retries for failed requests.
 type API struct {
-	// APIKey is the Last.fm API key used to authenticate requests.
-	APIKey string
+	// apiKey is the Last.fm API key used to authenticate requests.
+	apiKey string
 	// UserAgent is the user agent string sent with each request to the API.
 	UserAgent string
 	// Retries is the number of times to retry failed requests.
@@ -86,16 +86,28 @@ type API struct {
 
 // NewKeyOnly returns a new instance of API with the given API key but without
 // a Last.fm API secret. This is useful if you don't plan to use the API secret
-// to sign requests to the API such as auth methods.
-func NewKeyOnly(apiKey string) *API {
+// to sign requests to the API such as auth methods. Returns an error if the API
+// key is missing.
+func NewKeyOnly(apiKey string) (*API, error) {
 	t := time.Duration(DefaultTimeout) * time.Second
 
-	return &API{
-		APIKey:    apiKey,
+	a := &API{
+		apiKey:    apiKey,
 		UserAgent: DefaultUserAgent,
 		Retries:   DefaultRetries,
 		Client:    &http.Client{Timeout: t},
 	}
+
+	if err := a.CheckCredentials(RequestLevelAPIKey); err != nil {
+		return nil, err
+	}
+
+	return a, nil
+}
+
+// APIKey returns the Last.fm API key used to authenticate requests.
+func (a *API) APIKey() string {
+	return a.apiKey
 }
 
 // SetUserAgent sets the user agent for the API client.
@@ -125,7 +137,7 @@ func (a *API) AuthURL() string {
 //
 // https://www.last.fm/api/webauth
 func (a *API) AuthCallbackURL(callbackURL string) string {
-	return AuthURL(AuthURLParams{APIKey: a.APIKey, Callback: callbackURL})
+	return AuthURL(AuthURLParams{APIKey: a.apiKey, Callback: callbackURL})
 }
 
 // AuthTokenURL returns the authorization URL for the Last.fm API with a
@@ -134,7 +146,7 @@ func (a *API) AuthCallbackURL(callbackURL string) string {
 //
 // https://www.last.fm/api/desktopauth
 func (a *API) AuthTokenURL(token string) string {
-	return AuthURL(AuthURLParams{APIKey: a.APIKey, Token: token})
+	return AuthURL(AuthURLParams{APIKey: a.apiKey, Token: token})
 }
 
 // Get sends an HTTP GET request to the API using the specified method and
@@ -190,7 +202,7 @@ func (a *API) Request(dest any, httpMethod string, method APIMethod, params any)
 		return err
 	}
 
-	p.Set("api_key", a.APIKey)
+	p.Set("api_key", a.apiKey)
 	p.Set("method", method.String())
 
 	switch httpMethod {
@@ -337,7 +349,7 @@ func BuildAPIURL(params url.Values) string {
 func (a *API) CheckCredentials(level RequestLevel) error {
 	switch level {
 	case RequestLevelSession, RequestLevelSecret, RequestLevelAPIKey:
-		if a.APIKey == "" {
+		if a.apiKey == "" {
 			return NewLastFMError(ErrAPIKeyMissing, APIKeyMissingMessage)
 		}
 		fallthrough

@@ -8,6 +8,74 @@ import (
 	"testing"
 )
 
+// newTestAuthAPI returns an AuthAPI built directly, bypassing the credential
+// checks in New so tests can construct AuthAPIs with missing credentials.
+func newTestAuthAPI(apiKey, secret string) *AuthAPI {
+	return &AuthAPI{
+		API: &API{
+			apiKey:    apiKey,
+			UserAgent: DefaultUserAgent,
+			Retries:   DefaultRetries,
+			Client:    &http.Client{},
+		},
+		secret: secret,
+	}
+}
+
+func TestNew(t *testing.T) {
+	cases := []struct {
+		name    string
+		apiKey  string
+		secret  string
+		wantErr error
+	}{
+		{
+			name:   "Valid credentials",
+			apiKey: "testapikey",
+			secret: "testsecret",
+		},
+		{
+			name:    "Missing secret",
+			apiKey:  "testapikey",
+			secret:  "",
+			wantErr: NewLastFMError(ErrSecretRequired, SecretRequiredMessage),
+		},
+		{
+			name:    "Missing API key",
+			apiKey:  "",
+			secret:  "testsecret",
+			wantErr: NewLastFMError(ErrAPIKeyMissing, APIKeyMissingMessage),
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			a, err := New(c.apiKey, c.secret)
+
+			if c.wantErr == nil {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if a == nil {
+					t.Fatal("Expected AuthAPI, got nil")
+				}
+				if a.APIKey() != c.apiKey || a.secret != c.secret {
+					t.Errorf("Expected key %q and secret %q, got %q and %q",
+						c.apiKey, c.secret, a.APIKey(), a.secret)
+				}
+				return
+			}
+
+			if a != nil {
+				t.Errorf("Expected nil AuthAPI, got %+v", a)
+			}
+			if !errors.Is(err, c.wantErr) {
+				t.Errorf("Expected error: %v, got: %v", c.wantErr, err)
+			}
+		})
+	}
+}
+
 func TestAPI_PostSigned(t *testing.T) {
 	cases := []struct {
 		name string
@@ -102,10 +170,10 @@ func TestAPI_PostSigned(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.APIKey = "testapikey"
+				api.apiKey = "testapikey"
 			}
 			if !c.noSecret {
-				api.Secret = "testsecret"
+				api.secret = "testsecret"
 			}
 
 			var result struct {
@@ -237,10 +305,10 @@ func TestAPI_RequestSigned(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.APIKey = "testapikey"
+				api.apiKey = "testapikey"
 			}
 			if !c.noSecret {
-				api.Secret = "testsecret"
+				api.secret = "testsecret"
 			}
 
 			var user struct {

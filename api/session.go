@@ -23,29 +23,50 @@ type Session struct {
 	subscriber bool
 }
 
-// NewSession returns a new API session from a user's session details.
-func NewSession(apiKey, secret string, session lastfm.Session) *Session {
-	return NewAPISession(New(apiKey, secret), session)
+// NewSession returns a new API session from a user's session details. Returns
+// an error if the API key, secret, or session key is missing.
+func NewSession(apiKey, secret string, session lastfm.Session) (*Session, error) {
+	a, err := New(apiKey, secret)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewAPISession(a, session)
 }
 
 // NewSessionFromKey returns a new API session from a user's session key.
-func NewSessionFromKey(apiKey, secret, sessionKey string) *Session {
-	return NewAPISession(New(apiKey, secret), lastfm.Session{Key: sessionKey})
+// Returns an error if the API key, secret, or session key is missing.
+func NewSessionFromKey(apiKey, secret, sessionKey string) (*Session, error) {
+	return NewSession(apiKey, secret, lastfm.Session{Key: sessionKey})
 }
 
-// NewAPISession returns a new API session from an AuthAPI instance.
-func NewAPISession(api *AuthAPI, session lastfm.Session) *Session {
-	return &Session{
+// NewAPISessionFromKey returns a new API session from an AuthAPI instance and
+// a user's session key. Returns an error if the AuthAPI is nil, or the API
+// key, secret, or session key is missing.
+func NewAPISessionFromKey(api *AuthAPI, sessionKey string) (*Session, error) {
+	return NewAPISession(api, lastfm.Session{Key: sessionKey})
+}
+
+// NewAPISession returns a new API session from an AuthAPI instance. Returns an
+// error if the AuthAPI is nil, or the API key, secret, or session key is
+// missing.
+func NewAPISession(api *AuthAPI, session lastfm.Session) (*Session, error) {
+	if api == nil || api.API == nil {
+		return nil, errors.New("AuthAPI is nil")
+	}
+
+	s := &Session{
 		AuthAPI:    api,
 		name:       session.Name,
 		key:        session.Key,
 		subscriber: session.Subscriber.Bool(),
 	}
-}
 
-// // NewAPISession returns a new API session from an AuthAPI instance.
-func NewAPISessionFromKey(api *AuthAPI, sessionKey string) *Session {
-	return NewAPISession(api, lastfm.Session{Key: sessionKey})
+	if err := s.CheckCredentials(RequestLevelSession); err != nil {
+		return nil, err
+	}
+
+	return s, nil
 }
 
 func (s *Session) Key() string {
@@ -111,7 +132,7 @@ func (s *Session) Request(dest any, httpMethod string, method APIMethod, params 
 		return err
 	}
 
-	p.Set("api_key", s.APIKey)
+	p.Set("api_key", s.apiKey)
 	p.Set("sk", s.key)
 	p.Set("method", method.String())
 	p.Set("api_sig", s.Signature(p))

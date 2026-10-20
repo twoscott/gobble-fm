@@ -42,33 +42,47 @@ func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return m.doFunc(req)
 }
 
-type mockResponse struct {
-	status int
-	body   string
-	err    error
-}
+func TestNewKeyOnly(t *testing.T) {
+	cases := []struct {
+		name    string
+		apiKey  string
+		wantErr error
+	}{
+		{
+			name:   "Valid API key",
+			apiKey: "testapikey",
+		},
+		{
+			name:    "Missing API key",
+			apiKey:  "",
+			wantErr: NewLastFMError(ErrAPIKeyMissing, APIKeyMissingMessage),
+		},
+	}
 
-// respondWith returns a doFunc that replies with each response in turn, one
-// per request. Any request beyond the given responses fails the test.
-func respondWith(t *testing.T, responses ...mockResponse) func(*http.Request) (*http.Response, error) {
-	var i int
-	return func(req *http.Request) (*http.Response, error) {
-		t.Helper()
-		if i >= len(responses) {
-			t.Errorf("unexpected request %d to %s: only %d responses given", i+1, req.URL, len(responses))
-			return nil, errUnexpectedRequest
-		}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			a, err := NewKeyOnly(c.apiKey)
 
-		r := responses[i]
-		i++
-		if r.err != nil {
-			return nil, r.err
-		}
+			if c.wantErr == nil {
+				if err != nil {
+					t.Fatalf("Unexpected error: %v", err)
+				}
+				if a == nil {
+					t.Fatal("Expected API, got nil")
+				}
+				if a.APIKey() != c.apiKey {
+					t.Errorf("Expected key %q, got %q", c.apiKey, a.APIKey())
+				}
+				return
+			}
 
-		return &http.Response{
-			StatusCode: r.status,
-			Body:       io.NopCloser(strings.NewReader(r.body)),
-		}, nil
+			if a != nil {
+				t.Errorf("Expected nil API, got %+v", a)
+			}
+			if !errors.Is(err, c.wantErr) {
+				t.Errorf("Expected error: %v, got: %v", c.wantErr, err)
+			}
+		})
 	}
 }
 
@@ -278,7 +292,7 @@ func TestAPI_Get(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.APIKey = "testapikey"
+				api.apiKey = "testapikey"
 			}
 
 			var user struct {
@@ -398,7 +412,7 @@ func TestAPI_Request(t *testing.T) {
 			}
 
 			if !c.noAPIkey {
-				api.APIKey = "testapikey"
+				api.apiKey = "testapikey"
 			}
 
 			var user struct {
