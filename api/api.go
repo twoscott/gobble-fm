@@ -344,6 +344,10 @@ func (a *API) tryRequest(dest any, method, url, body string) error {
 	for i := uint(0); i <= a.Retries; i++ {
 		var req *http.Request
 
+		// reset so a failed decode doesn't leave the previous attempt's
+		// response or error in place
+		lfm, lferr = LFMWrapper{}, nil
+
 		switch method {
 		case http.MethodGet:
 			req, err = a.createGetRequest(url)
