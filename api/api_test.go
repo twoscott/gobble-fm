@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/xml"
 	"errors"
 	"io"
@@ -11,20 +12,64 @@ import (
 )
 
 var (
-	maxTries   = DefaultRetries + 1
-	errNetwork = errors.New("network error")
+	maxTries             = DefaultRetries + 1
+	errNetwork           = errors.New("network error")
+	errUnexpectedRequest = errors.New("unexpected request")
 )
 
 type mockHTTPClient struct {
 	tries       uint
 	capturedReq *http.Request
-	doFunc      func(req *http.Request) (*http.Response, error)
+	// bodies holds the body of each request in the order they were sent.
+	bodies []string
+	doFunc func(req *http.Request) (*http.Response, error)
 }
 
 func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	m.capturedReq = req
 	m.tries++
+
+	var body []byte
+	if req.Body != nil {
+		var err error
+		if body, err = io.ReadAll(req.Body); err != nil {
+			return nil, err
+		}
+		req.Body = io.NopCloser(bytes.NewReader(body))
+	}
+	m.bodies = append(m.bodies, string(body))
+
 	return m.doFunc(req)
+}
+
+type mockResponse struct {
+	status int
+	body   string
+	err    error
+}
+
+// respondWith returns a doFunc that replies with each response in turn, one
+// per request. Any request beyond the given responses fails the test.
+func respondWith(t *testing.T, responses ...mockResponse) func(*http.Request) (*http.Response, error) {
+	var i int
+	return func(req *http.Request) (*http.Response, error) {
+		t.Helper()
+		if i >= len(responses) {
+			t.Errorf("unexpected request %d to %s: only %d responses given", i+1, req.URL, len(responses))
+			return nil, errUnexpectedRequest
+		}
+
+		r := responses[i]
+		i++
+		if r.err != nil {
+			return nil, r.err
+		}
+
+		return &http.Response{
+			StatusCode: r.status,
+			Body:       io.NopCloser(strings.NewReader(r.body)),
+		}, nil
+	}
 }
 
 func TestAPI_Get(t *testing.T) {
@@ -698,6 +743,151 @@ func TestSignature(t *testing.T) {
 			got := Signature(c.params, c.secret)
 			if got != c.wantResult {
 				t.Errorf("expected %s, got %s", c.wantResult, got)
+			}
+		})
+	}
+}
+
+func TestAPI_Retries(t *testing.T) {
+	const (
+		okBody               = `<lfm status="ok"><user><name>testuser</name></user></lfm>`
+		operationFailedBody  = `<lfm status="failed"><error code="8">Operation failed</error></lfm>`
+		invalidParamsBody    = `<lfm status="failed"><error code="6">Invalid parameters</error></lfm>`
+		wantPostBody         = "api_key=testapikey&method=user.getInfo&user=testuser"
+		internalServerErrMsg = "Internal Server Error"
+	)
+
+	var (
+		ok              = mockResponse{status: http.StatusOK, body: okBody}
+		serverError     = mockResponse{status: http.StatusInternalServerError}
+		operationFailed = mockResponse{status: http.StatusBadRequest, body: operationFailedBody}
+	)
+
+	cases := []struct {
+		name string
+
+		retries   uint
+		post      bool
+		responses []mockResponse
+
+		wantResult string
+		wantError  error
+		wantTries  uint
+	}{
+		{
+			name:       "Recovers after HTTP 500",
+			retries:    DefaultRetries,
+			responses:  []mockResponse{serverError, ok},
+			wantResult: "testuser",
+			wantTries:  2,
+		},
+		{
+			name:       "Recovers after HTTP 429",
+			retries:    DefaultRetries,
+			responses:  []mockResponse{{status: http.StatusTooManyRequests}, ok},
+			wantResult: "testuser",
+			wantTries:  2,
+		},
+		{
+			name:       "Recovers after retryable Last.fm error",
+			retries:    DefaultRetries,
+			responses:  []mockResponse{operationFailed, ok},
+			wantResult: "testuser",
+			wantTries:  2,
+		},
+		{
+			name:       "Resends POST body on retry",
+			retries:    DefaultRetries,
+			post:       true,
+			responses:  []mockResponse{serverError, serverError, ok},
+			wantResult: "testuser",
+			wantTries:  3,
+		},
+		{
+			name:      "Retries disabled",
+			retries:   0,
+			responses: []mockResponse{serverError},
+			wantError: &HTTPError{StatusCode: http.StatusInternalServerError, Message: internalServerErrMsg},
+			wantTries: 1,
+		},
+		{
+			name:      "Custom retry count",
+			retries:   2,
+			responses: []mockResponse{serverError, serverError, serverError},
+			wantError: &HTTPError{StatusCode: http.StatusInternalServerError, Message: internalServerErrMsg},
+			wantTries: 3,
+		},
+		{
+			name:    "Stops at non-retryable Last.fm error",
+			retries: DefaultRetries,
+			responses: []mockResponse{
+				serverError,
+				{status: http.StatusBadRequest, body: invalidParamsBody},
+			},
+			wantError: &LastFMError{Code: ErrInvalidParameters, Message: "Invalid parameters"},
+			wantTries: 2,
+		},
+		{
+			name:      "Returns network error without retrying it",
+			retries:   DefaultRetries,
+			responses: []mockResponse{serverError, {err: errNetwork}},
+			wantError: errNetwork,
+			wantTries: 2,
+		},
+		{
+			name:      "Doesn't reuse Last.fm error from earlier attempt",
+			retries:   DefaultRetries,
+			responses: []mockResponse{operationFailed, {status: http.StatusOK, body: "invalid xml"}},
+			wantError: io.EOF,
+			wantTries: 2,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			mockClient := &mockHTTPClient{doFunc: respondWith(t, c.responses...)}
+
+			api := &API{
+				APIKey:    "testapikey",
+				UserAgent: DefaultUserAgent,
+				Retries:   c.retries,
+				Client:    mockClient,
+			}
+
+			params := struct {
+				User string `url:"user"`
+			}{User: "testuser"}
+
+			var user struct {
+				Name string `xml:"name"`
+			}
+
+			var err error
+			if c.post {
+				err = api.Post(&user, UserGetInfoMethod, params)
+			} else {
+				err = api.Get(&user, UserGetInfoMethod, params)
+			}
+
+			if c.wantError == nil && err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if c.wantError != nil && !errors.Is(err, c.wantError) {
+				t.Errorf("expected error %v, got %v", c.wantError, err)
+			}
+			if user.Name != c.wantResult {
+				t.Errorf("expected result %q, got %q", c.wantResult, user.Name)
+			}
+			if c.wantTries != mockClient.tries {
+				t.Errorf("expected %d tries, got %d", c.wantTries, mockClient.tries)
+			}
+
+			if c.post {
+				for i, body := range mockClient.bodies {
+					if body != wantPostBody {
+						t.Errorf("expected attempt %d body %q, got %q", i+1, wantPostBody, body)
+					}
+				}
 			}
 		})
 	}
