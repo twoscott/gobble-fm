@@ -152,14 +152,12 @@ func TestAPI_PostSigned(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			mockClient := &mockHTTPClient{
-				doFunc: func(req *http.Request) (*http.Response, error) {
-					return &http.Response{
-						StatusCode: c.mockStatusCode,
-						Body:       io.NopCloser(strings.NewReader(c.mockBody)),
-					}, c.mockError
-				},
-			}
+			mockClient := newMockClient(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: c.mockStatusCode,
+					Body:       io.NopCloser(strings.NewReader(c.mockBody)),
+				}, c.mockError
+			})
 
 			api := &AuthAPI{
 				API: &API{
@@ -204,7 +202,7 @@ func TestAPI_PostSigned(t *testing.T) {
 					t.Fatalf("expected request to be captured, but it was nil")
 				}
 
-				if c.wantURL != "" && req.URL == nil || req.URL.String() != c.wantURL {
+				if c.wantURL != "" && (req.URL == nil || req.URL.String() != c.wantURL) {
 					t.Errorf("expected URL %s, got %s", c.wantURL, mockClient.capturedReq.URL.String())
 				}
 				if c.wantPostBody != "" {
@@ -290,11 +288,11 @@ func TestAPI_RequestSigned(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			mockClient := &mockHTTPClient{
-				doFunc: func(req *http.Request) (*http.Response, error) {
-					return nil, c.mockError
-				},
+			var doFunc func(req *http.Request) (*http.Response, error)
+			if c.mockError != nil {
+				doFunc = respondWith(t, mockResponse{err: c.mockError})
 			}
+			mockClient := newMockClient(t, doFunc)
 
 			api := &AuthAPI{
 				API: &API{

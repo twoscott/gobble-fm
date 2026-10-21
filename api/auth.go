@@ -18,11 +18,7 @@ import (
 // fetching and authenticating session tokens for users.
 type AuthAPI struct {
 	*API
-	// secret is the Last.fm API secret used to sign requests. It is stored as a
-	// pointer because fmt can't call String on unexported fields, so a Secret
-	// value here would be printed in full. fmt prints nested pointers as
-	// addresses, so the secret isn't leaked when an AuthAPI, or anything
-	// embedding it, is printed or logged.
+	// secret is the Last.fm API secret used to sign requests.
 	secret string
 }
 

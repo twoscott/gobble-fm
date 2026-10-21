@@ -18,6 +18,7 @@ var (
 )
 
 type mockHTTPClient struct {
+	t           *testing.T
 	tries       uint
 	capturedReq *http.Request
 	// bodies holds the body of each request in the order they were sent.
@@ -25,7 +26,15 @@ type mockHTTPClient struct {
 	doFunc func(req *http.Request) (*http.Response, error)
 }
 
+// newMockClient returns a mock HTTP client that responds using doFunc. A nil
+// doFunc means no request is expected, so any request fails the test instead
+// of returning a nil response for the code under test to dereference.
+func newMockClient(t *testing.T, doFunc func(req *http.Request) (*http.Response, error)) *mockHTTPClient {
+	return &mockHTTPClient{t: t, doFunc: doFunc}
+}
+
 func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	m.t.Helper()
 	m.capturedReq = req
 	m.tries++
 
@@ -33,13 +42,54 @@ func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	if req.Body != nil {
 		var err error
 		if body, err = io.ReadAll(req.Body); err != nil {
-			return nil, err
+			m.t.Fatal("failed to read request body:", err)
 		}
 		req.Body = io.NopCloser(bytes.NewReader(body))
 	}
 	m.bodies = append(m.bodies, string(body))
 
-	return m.doFunc(req)
+	if m.doFunc == nil {
+		m.t.Errorf("unexpected %s request to %s", req.Method, req.URL)
+		return nil, errUnexpectedRequest
+	}
+
+	res, err := m.doFunc(req)
+	if res == nil && err == nil {
+		m.t.Errorf("mock returned a nil response and nil error for %s", req.URL)
+		return nil, errUnexpectedRequest
+	}
+
+	return res, err
+}
+
+type mockResponse struct {
+	status int
+	body   string
+	err    error
+}
+
+// respondWith returns a doFunc that replies with each response in turn, one
+// per request. Any request beyond the given responses fails the test.
+func respondWith(t *testing.T, responses ...mockResponse) func(*http.Request) (*http.Response, error) {
+	var i int
+	return func(req *http.Request) (*http.Response, error) {
+		t.Helper()
+		if i >= len(responses) {
+			t.Errorf("unexpected request %d to %s: only %d responses given", i+1, req.URL, len(responses))
+			return nil, errUnexpectedRequest
+		}
+
+		r := responses[i]
+		i++
+		if r.err != nil {
+			return nil, r.err
+		}
+
+		return &http.Response{
+			StatusCode: r.status,
+			Body:       io.NopCloser(strings.NewReader(r.body)),
+		}, nil
+	}
 }
 
 func TestNewKeyOnly(t *testing.T) {
@@ -276,14 +326,12 @@ func TestAPI_Get(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			mockClient := &mockHTTPClient{
-				doFunc: func(req *http.Request) (*http.Response, error) {
-					return &http.Response{
-						StatusCode: c.mockStatusCode,
-						Body:       io.NopCloser(strings.NewReader(c.mockBody)),
-					}, c.mockError
-				},
-			}
+			mockClient := newMockClient(t, func(req *http.Request) (*http.Response, error) {
+				return &http.Response{
+					StatusCode: c.mockStatusCode,
+					Body:       io.NopCloser(strings.NewReader(c.mockBody)),
+				}, c.mockError
+			})
 
 			api := &API{
 				UserAgent: DefaultUserAgent,
@@ -399,11 +447,11 @@ func TestAPI_Request(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			mockClient := &mockHTTPClient{
-				doFunc: func(req *http.Request) (*http.Response, error) {
-					return nil, c.mockError
-				},
+			var doFunc func(req *http.Request) (*http.Response, error)
+			if c.mockError != nil {
+				doFunc = respondWith(t, mockResponse{err: c.mockError})
 			}
+			mockClient := newMockClient(t, doFunc)
 
 			api := &API{
 				UserAgent: DefaultUserAgent,
@@ -506,6 +554,137 @@ func TestSignature(t *testing.T) {
 	}
 }
 
+func TestRequestEncoding(t *testing.T) {
+	const (
+		formContentType = "application/x-www-form-urlencoded"
+
+		unsigned = "api_key=testapikey&artist=testartist&method=track.love&track=testtrack"
+		signed   = "api_key=testapikey&api_sig=dfc04103da8c7c8b67c25554e0881071" +
+			"&artist=testartist&method=track.love&track=testtrack"
+		session = "api_key=testapikey&api_sig=9eb3a22d6f53894d9c893f05851cad38" +
+			"&artist=testartist&method=track.love&sk=testsessionkey&track=testtrack"
+	)
+
+	params := struct {
+		Artist string `url:"artist"`
+		Track  string `url:"track"`
+	}{Artist: "testartist", Track: "testtrack"}
+
+	cases := []struct {
+		name string
+		send func(client HTTPClient) error
+
+		wantHTTPMethod  string
+		wantURL         string
+		wantBody        string
+		wantContentType string
+	}{
+		{
+			name: "Unsigned GET",
+			send: func(client HTTPClient) error {
+				a := newTestAuthAPI("testapikey", "testsecret")
+				a.Client = client
+				return a.Get(nil, TrackLoveMethod, params)
+			},
+			wantHTTPMethod: http.MethodGet,
+			wantURL:        Endpoint + "?" + unsigned,
+		},
+		{
+			name: "Unsigned POST",
+			send: func(client HTTPClient) error {
+				a := newTestAuthAPI("testapikey", "testsecret")
+				a.Client = client
+				return a.Post(nil, TrackLoveMethod, params)
+			},
+			wantHTTPMethod:  http.MethodPost,
+			wantURL:         Endpoint,
+			wantBody:        unsigned,
+			wantContentType: formContentType,
+		},
+		{
+			name: "Signed GET",
+			send: func(client HTTPClient) error {
+				a := newTestAuthAPI("testapikey", "testsecret")
+				a.Client = client
+				return a.GetSigned(nil, TrackLoveMethod, params)
+			},
+			wantHTTPMethod: http.MethodGet,
+			wantURL:        Endpoint + "?" + signed,
+		},
+		{
+			name: "Signed POST",
+			send: func(client HTTPClient) error {
+				a := newTestAuthAPI("testapikey", "testsecret")
+				a.Client = client
+				return a.PostSigned(nil, TrackLoveMethod, params)
+			},
+			wantHTTPMethod:  http.MethodPost,
+			wantURL:         Endpoint,
+			wantBody:        signed,
+			wantContentType: formContentType,
+		},
+		{
+			name: "Session GET",
+			send: func(client HTTPClient) error {
+				s := newTestSession("testapikey", "testsecret", "testsessionkey")
+				s.Client = client
+				return s.Get(nil, TrackLoveMethod, params)
+			},
+			wantHTTPMethod: http.MethodGet,
+			wantURL:        Endpoint + "?" + session,
+		},
+		{
+			name: "Session POST",
+			send: func(client HTTPClient) error {
+				s := newTestSession("testapikey", "testsecret", "testsessionkey")
+				s.Client = client
+				return s.Post(nil, TrackLoveMethod, params)
+			},
+			wantHTTPMethod:  http.MethodPost,
+			wantURL:         Endpoint,
+			wantBody:        session,
+			wantContentType: formContentType,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			mockClient := newMockClient(t, respondWith(t, mockResponse{
+				status: http.StatusOK,
+				body:   `<lfm status="ok"></lfm>`,
+			}))
+
+			if err := c.send(mockClient); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			req := mockClient.capturedReq
+			if req == nil {
+				t.Fatal("expected request to be captured, but it was nil")
+			}
+
+			if req.Method != c.wantHTTPMethod {
+				t.Errorf("expected HTTP method %s, got %s", c.wantHTTPMethod, req.Method)
+			}
+			if req.URL.String() != c.wantURL {
+				t.Errorf("expected URL %s, got %s", c.wantURL, req.URL.String())
+			}
+			if mockClient.bodies[0] != c.wantBody {
+				t.Errorf("expected body %q, got %q", c.wantBody, mockClient.bodies[0])
+			}
+			if got := req.Header.Get("Content-Type"); got != c.wantContentType {
+				t.Errorf("expected Content-Type %q, got %q", c.wantContentType, got)
+			}
+			if got := req.Header.Get("User-Agent"); got != DefaultUserAgent {
+				t.Errorf("expected User-Agent %q, got %q", DefaultUserAgent, got)
+			}
+			if got := req.Header.Get("Accept"); got != "application/xml" {
+				t.Errorf("expected Accept %q, got %q", "application/xml", got)
+			}
+		})
+	}
+}
+
 func TestAPI_Retries(t *testing.T) {
 	const (
 		okBody               = `<lfm status="ok"><user><name>testuser</name></user></lfm>`
@@ -603,10 +782,10 @@ func TestAPI_Retries(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			mockClient := &mockHTTPClient{doFunc: respondWith(t, c.responses...)}
+			mockClient := newMockClient(t, respondWith(t, c.responses...))
 
 			api := &API{
-				APIKey:    "testapikey",
+				apiKey:    "testapikey",
 				UserAgent: DefaultUserAgent,
 				Retries:   c.retries,
 				Client:    mockClient,

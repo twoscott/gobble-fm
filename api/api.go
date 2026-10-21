@@ -230,9 +230,9 @@ func (a *API) PostBody(dest any, url, body string) error {
 func (a *API) tryRequest(dest any, method, url, body string) error {
 	var (
 		res   *http.Response
+		err   error
 		lfm   LFMWrapper
 		lferr *LastFMError
-		err   error
 	)
 
 	for i := uint(0); i <= a.Retries; i++ {
